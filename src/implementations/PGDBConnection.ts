@@ -1,0 +1,130 @@
+import pg  from 'pg';
+
+import IDBConnection from "../core/objects/interfaces/IDBConnection";
+import ConnectionFailException from "../core/exceptions/ConnectionFailException";
+import QueryFailException from "../core/exceptions/QueryFailException";
+
+export default class PGDBConnection implements IDBConnection
+{
+    public HostName!: string;
+    public Port!: number;
+    public DataBaseName!: string;
+    public UserName!: string;
+    public PassWord!: string; 
+    private _conn! : pg.Client;
+    private _database! : string;
+
+    constructor(host : string, port : number, dababase : string, user : string, pass : string)
+    {        
+        this.HostName = host;
+        this.Port = port;
+        this.DataBaseName = dababase;
+        this._database = dababase;
+        this.UserName = user;
+        this.PassWord = pass;        
+    }     
+    
+    public AsPostgres() : PGDBConnection
+    {        
+        this.DataBaseName = "postgres";
+        return this;
+    }
+    
+    public Open() : Promise<void>
+    {
+
+        return new Promise<void>(async (resolve, reject) => 
+        {
+            this._conn = new pg.Client({
+                host : this.HostName, 
+                port : this.Port, 
+                database : this.DataBaseName, 
+                user : this.UserName, 
+                password: this.PassWord
+            });                        
+    
+            this.DataBaseName = this._database;
+
+            try
+            {
+                await this._conn.connect();
+                resolve();
+    
+            }catch(err)
+            {
+                
+                reject(new ConnectionFailException((err as Error).message));
+            }   
+        });      
+
+    }
+
+    public Query(query : string) : Promise<any>
+    {
+        return new Promise<any>(async (resolve, reject) => 
+        {
+            try
+            {
+                resolve(await this._conn.query(query));
+                
+            }catch(err)
+            {
+                reject(new ConnectionFailException((err as Error).message));
+            }    
+        });  
+        
+        
+    }
+
+    public Close()
+    {
+        return new Promise<void>(async (resolve, reject) => 
+        {
+            try
+            {
+                await this._conn.end();
+                resolve();
+                
+            }catch(err)
+            {
+                reject(new ConnectionFailException((err as Error).message));
+            }    
+        });  
+         
+        
+    }
+
+
+    public async ExecuteNonQuery(query: string): Promise<void> {
+       
+        return new Promise<void>(async (resolve, reject) => 
+        {
+            try
+            {
+                await this._conn.query(query)
+                resolve();
+
+            }catch(err)
+            {
+                reject(new QueryFailException((err as Error).message, query));
+            }  
+        });          
+
+    }
+
+
+    public async Execute(query: string): Promise<any> {
+
+        return new Promise<any>(async (resolve, reject) => 
+        {
+            try
+            {
+                resolve(await this._conn.query(query));
+
+            }catch(err)
+            {
+                reject(new QueryFailException((err as Error).message, query));
+            }  
+        });  
+    }
+}

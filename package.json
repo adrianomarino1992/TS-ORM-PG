@@ -1,0 +1,25 @@
+{
+  "name": "ts_orm",
+  "version": "1.0.0",
+  "description": "A ORM writen in typescript",
+  "main": "Index.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "keywords": [
+    "orm"
+  ],
+  "author": "adrinao.marino1992@gmail.com",
+  "license": "ISC",
+  "dependencies": {
+    "@types/pg": "^8.6.6",
+    "@types/reflect-metadata": "^0.1.0",
+    "jest": "^29.5.0",
+    "pg": "^8.10.0",
+    "reflect-metadata": "^0.1.13"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.0",
+    "ts-jest": "^29.0.5"
+  }
+}

@@ -1,0 +1,7 @@
+node_modules/
+# Keep environment variables out of version control
+lib/
+lib/temp/
+coverage/
+temp/
+.env
