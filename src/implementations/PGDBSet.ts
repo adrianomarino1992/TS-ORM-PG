@@ -18,7 +18,7 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
     private _table! : string;
     private _columns! : {[key : string] : string[]};
     private _manager! : PGDBManager;
-    private _statements : IPGStatement<T>[] = [];
+    private _statements : IPGStatement[] = [];
     private _ordering : IPGOrdenation<T>[] = [];
     private _limit? : IPGLimiter;
     
@@ -83,7 +83,7 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
         {
             
             let keys = TypeUtils.GetProperties(this._type).filter(p => SchemasDecorators.IsPrimaryKey(this._type, p));
-            let wheres : IPGStatement<T>[] = [];
+            let wheres : IPGStatement[] = [];
 
             if(keys && keys.length > 0)
             {
@@ -91,7 +91,7 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
                 {
                     wheres.push({
                         Statement : {
-                            Field : w as keyof T, 
+                            Field : w, 
                             Kind : Operation.EQUALS, 
                             Value : Reflect.get(obj, w)
                         }, 
@@ -120,7 +120,7 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
 
             for(let where of wheres)
             {
-                update += ` ${where.StatementType} ${this.EvaluateStatement(where.Statement)} `;
+                update += ` ${where.StatementType} ${this.EvaluateStatement(where)} `;
             }  
 
             await this._manager.ExecuteNonQuery(update);
@@ -134,7 +134,7 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
         {
             
             let keys = TypeUtils.GetProperties(this._type).filter(p => SchemasDecorators.IsPrimaryKey(this._type, p));
-            let wheres : IPGStatement<T>[] = [];
+            let wheres : IPGStatement[] = [];
 
             if(keys && keys.length > 0)
             {
@@ -142,7 +142,7 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
                 {
                     wheres.push({
                         Statement : {
-                            Field : w as keyof T, 
+                            Field : w, 
                             Kind : Operation.EQUALS, 
                             Value : Reflect.get(obj, w)
                         }, 
@@ -156,7 +156,7 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
 
             for(let where of wheres)
             {
-                del += ` ${where.StatementType} ${this.EvaluateStatement(where.Statement)} `;
+                del += ` ${where.StatementType} ${this.EvaluateStatement(where)} `;
             }  
 
             await this._manager.ExecuteNonQuery(del);
@@ -164,34 +164,49 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
             return obj;
         });
     }
-    Where(statement : IStatement<T>): IDBSet<T> {
+    Where<K extends keyof T>(statement : IStatement<T, K>): IDBSet<T> {
 
 
        this._statements.push(
         {
-            Statement : statement, 
+            Statement : 
+            {
+                Field : statement.Field.toString(), 
+                Kind : statement.Kind, 
+                Value : statement.Value
+            }, 
             StatementType : StatementType.WHERE
         });
 
         return this;
     }
 
-    And(statement : IStatement<T>): IDBSet<T> {
+    And<K extends keyof T>(statement : IStatement<T, K>): IDBSet<T> {
 
         this._statements.push(
             {
-                Statement : statement, 
+                Statement : 
+                {
+                    Field : statement.Field.toString(), 
+                    Kind : statement.Kind, 
+                    Value : statement.Value
+                },  
                 StatementType : StatementType.AND
             });
     
             return this;
     }
 
-    Or(statement : IStatement<T>): IDBSet<T> {
+    Or<K extends keyof T>(statement : IStatement<T, K>): IDBSet<T> {
 
         this._statements.push(
         {
-            Statement : statement, 
+            Statement : 
+            {
+                Field : statement.Field.toString(), 
+                Kind : statement.Kind, 
+                Value : statement.Value
+            }, 
             StatementType : StatementType.OR
         });
 
@@ -233,15 +248,12 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
 
         return this.CreatePromisse(async () => 
         {
-
-                        
-
             let query = `select * from ${this._table}`;
 
             for(let where of this._statements)
             {
-                query += ` ${where.StatementType} ${this.EvaluateStatement(where.Statement)} `;
-            }   
+                query += ` ${where.StatementType} ${this.EvaluateStatement(where)} `;
+            }  
                 
                 
             let ordenation = "";
@@ -365,11 +377,11 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
         throw new TypeNotSuportedException(`The type ${colType} is not suported`);
     }
 
-    private EvaluateStatement(statement : IStatement<T>)
+    private EvaluateStatement(pgStatement : IPGStatement)
     {
-        let column = TypeUtils.GetColumnName(this._type, statement.Field.toString());
-        let type = TypeUtils.GetDesingTimeType(this._type, statement.Field.toString());
-        let operation = this.GetOperators(statement.Kind);
+        let column = TypeUtils.GetColumnName(this._type, pgStatement.Statement.Field.toString());
+        let type = TypeUtils.GetDesingTimeType(this._type, pgStatement.Statement.Field.toString());
+        let operation = this.GetOperators(pgStatement.Statement.Kind);
 
         if(TypeUtils.IsNumber(TypeUtils.CastType(type!.toString())))
         {
@@ -382,7 +394,7 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
             operation[2] = `${operation[2]}$$`;
         }
 
-        return `${column} ${operation[0]} ${operation[1]}${statement.Value}${operation[2]}`;
+        return `${column} ${operation[0]} ${operation[1]}${pgStatement.Statement.Value}${operation[2]}`;
     }
 
     private EvaluateOrderBy(ordering : IPGOrdenation<T>)
@@ -419,10 +431,15 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
     
 }
 
-interface IPGStatement<T>
+interface IPGStatement
 {
     StatementType : StatementType;
-    Statement : IStatement<T>;
+    Statement : 
+    {
+            Field : string;
+            Kind : Operation, 
+            Value : any
+    }
 }
 
 interface IPGOrdenation<T>

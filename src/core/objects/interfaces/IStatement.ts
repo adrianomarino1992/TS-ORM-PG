@@ -1,10 +1,10 @@
 
 
-export default interface IStatement<T>
+export default interface IStatement<T, K extends keyof T>
 {
-    Field : keyof T, 
+    Field : K, 
     Kind : Operation, 
-    Value : any
+    Value : T[K]
 }
 
 
