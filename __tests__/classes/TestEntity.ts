@@ -43,7 +43,7 @@ export class Person
         this.Age = age;
         this.CEP = -1;
         this.PhoneNumbers = [];
-        this.Birth = new Date(1992,5,23);       
+        this.Birth = new Date(1992,4,23);       
         this.Documents = []; 
     }
        

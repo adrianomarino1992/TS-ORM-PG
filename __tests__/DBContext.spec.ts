@@ -18,7 +18,11 @@ async function SeedAsync() : Promise<Context>
 {
     let context = new Context(new PGDBManager(new PGConnection("localhost", 5434, "test_db", "supervisor", "sup")));
 
-    await context.Persons.AddAsync(new Person("Adriano", "adriano@test.com"));
+    let adriano = new Person("Adriano", "adriano@test.com");
+    adriano.Birth = new Date(1992,4,23);
+    adriano.Documents = [123,4,5,678,9];
+    adriano.PhoneNumbers = ['+55(12)98206-8255'];
+    await context.Persons.AddAsync(adriano);
     await context.Persons.AddAsync(new Person("Camila", "camila@test.com"));
     await context.Persons.AddAsync(new Person("Juliana", "juliana@test.com"));
     await context.Persons.AddAsync(new Person("Andre", "andre@test.com"));
@@ -60,7 +64,7 @@ describe("Context", ()=>{
     });
 
 
-    test("Adding an entity in real database", async ()=>{
+    test("Selecting an entity in real database", async ()=>{
        
         let context = await SeedAsync();
 
@@ -79,6 +83,10 @@ describe("Context", ()=>{
         expect(adrianos.length).toBe(1);   
         expect(adrianos[0].Name).toBe("Adriano");
         expect(adrianos[0].Email).toBe("adriano@test.com");
+        expect(adrianos[0].Birth).toEqual(new Date(1992,4,23));
+        expect(adrianos[0].Documents).toEqual([123,4,5,678,9]);
+        expect(adrianos[0].PhoneNumbers).toEqual(['+55(12)98206-8255']);
+        
 
         await TruncatePersonTableAsync();              
 
