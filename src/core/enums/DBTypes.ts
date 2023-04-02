@@ -1,13 +1,20 @@
 
 export enum DBTypes
 {
-    INTEGER = "integer",
+    INTEGER = "integer",    
     LONG = "long",
     DOUBLE = "double",
     TEXT = "text",
     DATE = "date",
-    DATETIME = "datetime",
+    DATETIME = "datetime",    
+    BOOLEAN = "boolean",
+    INTEGERARRAY = "integer[]", 
+    LONGARRAY = "long[]",
+    DOUBLEARRAY = "double[]",
+    TEXTARRAY = "text[]",
+    DATEARRAY = "date[]",
+    DATETIMEARRAY = "datetime[]",    
+    BOOLEANARRAY = "boolean[]", 
     SERIAL = "serial", 
-    BOOLEAN = "boolean", 
     CLASS = "object"
 }

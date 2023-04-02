@@ -19,13 +19,13 @@ export default class TypeUtils
     {
         let empty = Reflect.construct(cTor, []);
 
-        let type = SchemasDecorators.GetDataTypeAttribute(empty, propertyName);
+        let type = SchemasDecorators.GetDataTypeAttribute(cTor, propertyName);
 
         if(type == undefined)
             type = Reflect.getMetadata("design:type", empty, propertyName);
 
             if(typeof type === "function")
-                type = (type as any).name;
+                type = (type as any).name;        
 
         return type?.toString();
         
@@ -66,6 +66,38 @@ export default class TypeUtils
 
     }
 
+
+    public static IsArray(dbType : string)
+    {
+        switch(dbType.toLocaleLowerCase())
+        {
+            case DBTypes.INTEGERARRAY : return true;
+            case DBTypes.TEXTARRAY : return true;            
+            case DBTypes.BOOLEANARRAY : return true;            
+            case DBTypes.DATEARRAY : return true;            
+            case DBTypes.DATETIMEARRAY : return true;            
+            case DBTypes.LONGARRAY : return true;            
+            case DBTypes.DOUBLEARRAY : return true;            
+        }
+        return false;
+    }
+
+    public static ExtractElementType(dbType : string)
+    {
+       return dbType.toLocaleLowerCase().toString().replace('[]', '') as DBTypes;
+    }
+
+    public static IsDate(dbType : string)
+    {
+        switch(dbType.toLocaleLowerCase())
+        {
+            case DBTypes.DATE : return true;
+            case DBTypes.DATETIME : return true;            
+        }
+
+        return false;
+    }
+
     public static IsNumber(dbType : string)
     {
         switch(dbType.toLocaleLowerCase())
@@ -79,20 +111,27 @@ export default class TypeUtils
         return false;
     }
 
+    /**
+     * 
+     * @method
+     * @param {string} type the type from desing type to be converted to a DBTypes enum
+     * @returns the DBTypes correspondent
+     */
     public static CastType(type : string) : DBTypes
     {
-        switch(type.toLowerCase())
+        
+        for(let k in DBTypes)
         {
-            case "integer" : return DBTypes.INTEGER;
-            case "serial" : return DBTypes.LONG;
-            case "number" : return DBTypes.DOUBLE;
-            case "long" : return DBTypes.LONG;
-            case "text" : return DBTypes.TEXT;
-            case "string" : return DBTypes.TEXT;
-            case "date" : return DBTypes.DATE;
-            case "datetime" : return DBTypes.DATETIME;
-            case "boolean" : return DBTypes.BOOLEAN;
+            if((DBTypes as any)[k] == type.toLocaleLowerCase().trim())
+                return (DBTypes as any)[k]
+        }
+
+        switch(type.toLowerCase())
+        {           
+            case "number" : return DBTypes.DOUBLE;            
+            case "string" : return DBTypes.TEXT;            
             case "object" : return DBTypes.CLASS;
+
             default: throw new TypeNotSuportedException(`The type ${type} is not suported`);
         }
     }

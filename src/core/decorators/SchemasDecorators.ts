@@ -7,7 +7,7 @@ export default class SchemasDecorators
     private static _tableAttribute : string = "compile:schema-table";
     private static _columnAttribute : string = "compile:schema-column";
     private static _dataTypeAttribute : string = "compile:schema-dataType";
-    private static _primaryKeyAttribute : string = "compile:schema-primarykey";
+    private static _primaryKeyAttribute : string = "compile:schema-primarykey";    
     
 
     public static Table(name? : string)
@@ -29,7 +29,8 @@ export default class SchemasDecorators
         {
             Reflect.defineMetadata(SchemasDecorators._columnAttribute, name ?? propertyName.toLocaleLowerCase(), target.constructor, propertyName);
         }
-    }
+    }    
+    
     
     public static PrimaryKey()
     {
@@ -48,7 +49,7 @@ export default class SchemasDecorators
 
         return function (target : Object, propertyName : string)
         {
-            Reflect.defineMetadata(SchemasDecorators._dataTypeAttribute, type, target, propertyName);
+            Reflect.defineMetadata(SchemasDecorators._dataTypeAttribute, type, target.constructor, propertyName);
         }
     }
 
@@ -56,6 +57,8 @@ export default class SchemasDecorators
     {
         return Reflect.getMetadata(SchemasDecorators._columnAttribute, target, propertyName);
     }
+
+    
 
     public static GetDataTypeAttribute(target : Function, propertyName : string) : DBTypes | undefined
     {
@@ -66,5 +69,6 @@ export default class SchemasDecorators
         else 
             return value as DBTypes;
     }
+
 
 }

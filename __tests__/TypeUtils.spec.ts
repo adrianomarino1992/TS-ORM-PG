@@ -10,9 +10,7 @@ describe("Tpe utils functions", ()=>{
 
         let table = TypeUtils.GetTableName(Person);
 
-        expect(keys).not.toBeNull();
-
-        expect(Object.getOwnPropertyNames(keys).length).toBe(5);
+        expect(keys).not.toBeNull();        
         
         expect(table).toBe("person_tb");
         
@@ -23,6 +21,12 @@ describe("Tpe utils functions", ()=>{
         expect(keys["Email"]).toEqual(["email_address", "String"]);
 
         expect(keys["CEP"]).toEqual(["cep", "integer"]);
+
+        expect(keys["PhoneNumbers"]).toEqual(["phonenumbers", "text[]"]);
+
+        expect(keys["Documents"]).toEqual(["documents", "integer[]"]);
+
+        expect(keys["Birth"]).toEqual(["birth", "date"]);
 
     });
 

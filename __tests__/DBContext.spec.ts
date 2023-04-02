@@ -92,7 +92,7 @@ describe("Context", ()=>{
         test("Testing order by asc", async ()=>{
        
             let context = await SeedAsync();
-    
+            context.Collection(Person);
             let all = await context.Persons.OrderBy('Name').ToListAsync();
                                         
             expect(all.length).toBe(4);
@@ -101,8 +101,9 @@ describe("Context", ()=>{
             expect(all[2].Name).toBe("Camila");   
             expect(all[3].Name).toBe("Juliana");  
             
-            all = await context.Persons.OrderDescendingBy('Name').ToListAsync();
-                                        
+            all = await context.Persons.OrderDescendingBy('Name').ToListAsync();                                       
+            
+            
             expect(all.length).toBe(4);
             expect(all[3].Name).toBe("Adriano");   
             expect(all[2].Name).toBe("Andre");   
@@ -134,7 +135,9 @@ describe("Context", ()=>{
             expect(adriano).not.toBe(undefined);
     
             adriano!.CEP = 12312000;
-            
+            adriano!.Documents = [1, 2, 3, 4, 5, 6];
+            adriano!.PhoneNumbers = ["(55)12 98206-8255"];
+
             await context.Persons.UpdateAsync(adriano!);
     
             adriano = await context.Persons
@@ -148,7 +151,9 @@ describe("Context", ()=>{
     
             expect(adriano).not.toBe(undefined);
             expect(adriano!.CEP).toBe(12312000);
-            
+            expect(adriano!.Documents).toEqual([1, 2, 3, 4, 5, 6]);
+            expect(adriano!.PhoneNumbers).toEqual(["(55)12 98206-8255"]);
+
             await TruncatePersonTableAsync();              
     
         });

@@ -167,7 +167,12 @@ export default class PGDBManager implements IDBManager
         });
     }
 
-
+    /**
+     * @private
+     * @method
+     * @param {string} type the desing type of class property
+     * @returns {string} the postgres type correspondent
+     */
     private CastToPostgreSQLType(type : string) : string
     {
         switch(type.toLowerCase())
@@ -178,9 +183,17 @@ export default class PGDBManager implements IDBManager
             case "text" : return "text";
             case "string" : return "text";
             case "date" : return "date";
-            case "datetime" : return "datetime";
+            case "datetime" : return "timestamp";
             case "boolean" : return "boolean";
             case "serial" : return "serial";
+            case "integer[]" : return "integer[]";
+            case "number[]" : return "bigint[]";
+            case "long[]" : return "bigint[]";
+            case "text[]" : return "text[]";
+            case "string[]" : return "text[]";
+            case "date[]" : return "date[]";
+            case "datetime[]" : return "timestamp[]";
+            case "boolean[]" : return "boolean[]";            
             default: throw new TypeNotSuportedException(`The type ${type} is not suported`);
         }
     }

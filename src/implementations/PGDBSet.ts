@@ -8,6 +8,7 @@ import { Operation } from "../core/objects/interfaces/IStatement";
 import SchemasDecorators from "../core/decorators/SchemasDecorators";
 import PGDBManager from "./PGDBManager";
 import NotImpletedException from "../core/exceptions/NotImplementedException";
+import TypeNotSuportedException from "../core/exceptions/TypeNotSuportedException";
 
 
 export default class PGDBSet<T extends object>  implements IDBSet<T>
@@ -50,16 +51,11 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
                         continue;
                     }
 
+                    let colType = TypeUtils.CastType(this._columns[column][1]);
+
                     sql += `${this._columns[column][0]},`;            
                     
-                    if(TypeUtils.CastType(this._columns[column][1]) == DBTypes.TEXT)
-                    {
-                        values += `$$${Reflect.get(obj, column)}$$,`;
-
-                    }else if(TypeUtils.IsNumber(TypeUtils.CastType(this._columns[column][1])))
-                    {
-                        values += `${Reflect.get(obj, column)}`.replace(',','.') + ',' ;
-                    }
+                    values += `${this.CreateValueStatement(colType, Reflect.get(obj, column))},`;
                     
             }
             
@@ -80,6 +76,7 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
         });              
     }
 
+    
     UpdateAsync(obj : T): Promise<T> {
         
         return this.CreatePromisse(async() => 
@@ -108,19 +105,15 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
 
             for(let column in this._columns)
             {
+                let colType = TypeUtils.CastType(this._columns[column][1]);
+
                 if(SchemasDecorators.IsPrimaryKey(this._type, column))
                 {
                     continue;
                 }
 
-                if(TypeUtils.CastType(this._columns[column][1]) == DBTypes.TEXT)
-                {
-                    values += `${this._columns[column][0]} = $$${Reflect.get(obj, column)}$$,`;
+                values += `${this._columns[column][0]} = ${this.CreateValueStatement(colType, Reflect.get(obj, column))},`;
 
-                }else if(TypeUtils.IsNumber(TypeUtils.CastType(this._columns[column][1])))
-                {
-                    values += `${this._columns[column][0]} = ${Reflect.get(obj, column)}`.replace(',','.') + ',' ;
-                }
             }
             
             update = `${update} ${values.substring(0, values.length - 1)}`;
@@ -324,6 +317,53 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
         });
     }
    
+    private CreateValueStatement(colType : DBTypes, value : any) : string
+    {
+                    
+        if(colType == DBTypes.TEXT)
+        {
+            return `$$${value}$$`;
+
+        }else if(TypeUtils.IsNumber(colType))
+        {
+            return `${value}`.replace(',','.');
+
+        }else if(TypeUtils.IsDate(colType))
+        {
+            let dt : Date = value as unknown as Date;
+            let dtStr = `'${dt.getFullYear()}-${dt.getMonth() + 1}-${dt.getDate()}'`;
+                        
+            if(colType == DBTypes.DATE)
+            {
+               return `${dtStr}`;
+            }
+            else
+            {
+                return `${dtStr} ${dt.getHours()}:${dt.getMinutes()}` ;
+            }
+                        
+        }else if (TypeUtils.IsArray(colType))
+        {
+            let valuesStr = 'array[';
+            let elementType = TypeUtils.ExtractElementType(colType);
+            let hasItens = false;
+
+            for(let i in value)
+            {   
+                hasItens = true;
+                valuesStr += `${this.CreateValueStatement(elementType, value[i])},`;
+            }
+
+            if(hasItens)
+                valuesStr = valuesStr.substring(0, valuesStr.length - 1);
+            
+                valuesStr += `]::${colType}`;
+
+            return valuesStr;
+        }
+
+        throw new TypeNotSuportedException(`The type ${colType} is not suported`);
+    }
 
     private EvaluateStatement(statement : IStatement<T>)
     {
