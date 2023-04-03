@@ -10,14 +10,13 @@ import SchemasDecorators from '../core/decorators/SchemasDecorators';
 
 export default class PGDBManager implements IDBManager
 {
-    private _connection! : PGDBConnection;
+    private _connection! : PGDBConnection;   
 
     public constructor(connection : PGDBConnection)
     {
         this._connection = connection;
     }
     
-
     public CheckDatabase(dababase: string): Promise<boolean> {
        
         return this.CreatePromisse<boolean>(async ()=>
@@ -147,6 +146,10 @@ export default class PGDBManager implements IDBManager
         });
     }
 
+    public static Build(host : string, port : number, dababase : string, user : string, pass : string) : PGDBManager
+    {
+        return new PGDBManager(new PGDBConnection(host, port, dababase, user, pass));
+    }
     
     private CreatePromisse<T>(func : ()=> Promise<T>) : Promise<T>
     {

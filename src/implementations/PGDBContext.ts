@@ -1,6 +1,8 @@
 import IDBContext from "../core/objects/interfaces/IDBContext";
 import IDBSet from "../core/objects/interfaces/IDBSet";
+import TypeUtils from "../core/utils/TypeUtils";
 import PGDBManager from "./PGDBManager";
+import PGDBSet from "./PGDBSet";
 
 export default abstract class PGDBContext implements IDBContext
 {
@@ -11,7 +13,7 @@ export default abstract class PGDBContext implements IDBContext
         this._manager = manager;
     }
 
-    Collection<T>(cTor  : {new (...args : any[]) : T}): IDBSet<T> | undefined {
+    public Collection<T>(cTor  : {new (...args : any[]) : T}): IDBSet<T> | undefined {
 
         for(let prop of Object.keys(this))
         {
@@ -25,8 +27,23 @@ export default abstract class PGDBContext implements IDBContext
 
         return undefined
     }
-    UpdateDatabaseAsync(): Promise<void> {
-        throw new Error("Method not implemented.");
+    public async UpdateDatabaseAsync(): Promise<void> {
+       
+        let dbName = this._manager["_connection"].DataBaseName;
+
+        if(!await this._manager.CheckDatabase(dbName))
+            await this._manager.CreateDataBase(dbName);
+
+        let props = Object.keys(this);
+
+        for(let prop of props)
+        {
+            if((this as any)[prop].constructor == PGDBSet)
+            {
+                await this._manager.UpdateDatabaseForEntity((this as any)[prop]["_type"]);
+            }
+        }
+
     }
     
 }

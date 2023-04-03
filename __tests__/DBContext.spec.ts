@@ -64,40 +64,58 @@ describe("Context", ()=>{
     });
 
 
-    test("Selecting an entity in real database", async ()=>{
-       
-        let context = await SeedAsync();
+    test("Testing create schema from type", async ()=>{
 
-        let adrianos = await context.Persons
-                                    .Where(
-                                        {
-                                            Field : 'Name', 
-                                            Kind: Operation.EQUALS, 
-                                            Value : 'Adriano'
-                                        })
-                                    .ToListAsync();
+        let manager = PGDBManager.Build("localhost", 5434, "test_db", "supervisor", "sup");
 
-        let all = await context.Persons.ToListAsync();
-                                    
-        expect(all.length).toBe(4);
-        expect(adrianos.length).toBe(1);   
-        expect(adrianos[0].Name).toBe("Adriano");
-        expect(adrianos[0].Email).toBe("adriano@test.com");
-        expect(adrianos[0].Birth).toEqual(new Date(1992,4,23));
-        expect(adrianos[0].Documents).toEqual([123,4,5,678,9]);
-        expect(adrianos[0].PhoneNumbers).toEqual(['+55(12)98206-8255']);
-        
+        let context = new Context(manager);
 
-        await TruncatePersonTableAsync();              
+        await context.UpdateDatabaseAsync();
+
+        let table = await manager.CheckTable(Person);
+
+        expect(table).toBeTruthy();
 
     });
 
+    
+
+    describe("Query", ()=>{
+
+        test("Selecting an entity in real database", async ()=>{
+       
+            let context = await SeedAsync();
+    
+            let adrianos = await context.Persons
+                                        .Where(
+                                            {
+                                                Field : 'Name', 
+                                                Kind: Operation.EQUALS, 
+                                                Value : 'Adriano'
+                                            })
+                                        .ToListAsync();
+    
+            let all = await context.Persons.ToListAsync();
+                                        
+            expect(all.length).toBe(4);
+            expect(adrianos.length).toBe(1);   
+            expect(adrianos[0].Name).toBe("Adriano");
+            expect(adrianos[0].Email).toBe("adriano@test.com");
+            expect(adrianos[0].Birth).toEqual(new Date(1992,4,23));
+            expect(adrianos[0].Documents).toEqual([123,4,5,678,9]);
+            expect(adrianos[0].PhoneNumbers).toEqual(['+55(12)98206-8255']);
+            
+    
+            await TruncatePersonTableAsync();              
+    
+        });
+    });
 
     
 
     describe("Ordenation", ()=>{
         
-        test("Testing order by asc", async ()=>{
+        test("Testing order by asc and desc", async ()=>{
        
             let context = await SeedAsync();
             context.Collection(Person);

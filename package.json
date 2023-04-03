@@ -1,5 +1,5 @@
 {
-  "name": "ts_orm",
+  "name": "ts_orm_pg",
   "version": "1.0.0",
   "description": "A ORM writen in typescript",
   "main": "Index.js",
