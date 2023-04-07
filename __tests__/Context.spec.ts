@@ -3,20 +3,25 @@ import PGConnection from "../src/implementations/PGDBConnection";
 import PGDBManager from "../src/implementations/PGDBManager";
 import { Person } from './classes/TestEntity';
 import { Operation } from '../src/core/objects/interfaces/IStatement';
-import TypeUtils from '../src/core/utils/TypeUtils';
-
+import Type from '../src/core/design/Type';
+import { CreateConnection } from './TestFunctions';
 
 async function TruncatePersonTableAsync()
 {
-    let conn = new PGConnection("localhost", 5434, "test_db", "supervisor", "sup");
+    let conn = CreateConnection();
     await conn.Open();
-    await conn.ExecuteNonQuery(`truncate table ${TypeUtils.GetTableName(Person)}`);
+    await conn.ExecuteNonQuery(`truncate table ${Type.GetTableName(Person)}`);
     await conn.Close();
+}
+
+function CreateContext() : Context
+{
+    return new Context(new PGDBManager(CreateConnection()));
 }
 
 async function SeedAsync() : Promise<Context>
 {
-    let context = new Context(new PGDBManager(new PGConnection("localhost", 5434, "test_db", "supervisor", "sup")));
+    let context = CreateContext();
 
     let adriano = new Person("Adriano", "adriano@test.com");
     adriano.Birth = new Date(1992,4,23);
@@ -31,14 +36,16 @@ async function SeedAsync() : Promise<Context>
 }
 
 
+beforeAll(async()=>{
+    await TruncatePersonTableAsync();
+})
+
 describe("Context", ()=>{    
 
     
     test("Testing constructor", async ()=>{
        
-        var manager = new PGDBManager(new PGConnection("localhost", 5434, "test_db", "supervisor", "sup"));
-
-        let context = new Context(manager);
+        let context = CreateContext();
 
         expect(context).not.toBeNull();
 
@@ -49,7 +56,7 @@ describe("Context", ()=>{
 
     test("Testing access some collection", async ()=>{
 
-        let context = new Context(new PGDBManager(new PGConnection("localhost", 5434, "test_db", "supervisor", "sup")));
+        let context = CreateContext();
 
         let collection = context.Collection(Person);
 
@@ -62,22 +69,6 @@ describe("Context", ()=>{
         expect(fail).toBe(undefined);
         
     });
-
-
-    test("Testing create schema from type", async ()=>{
-
-        let manager = PGDBManager.Build("localhost", 5434, "test_db", "supervisor", "sup");
-
-        let context = new Context(manager);
-
-        await context.UpdateDatabaseAsync();
-
-        let table = await manager.CheckTable(Person);
-
-        expect(table).toBeTruthy();
-
-    });
-
     
 
     describe("Query", ()=>{

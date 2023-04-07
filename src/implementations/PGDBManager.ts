@@ -3,9 +3,11 @@ import TypeNotSuportedException from '../core/exceptions/TypeNotSuportedExceptio
 
 
 import IDBManager from '../core/objects/interfaces/IDBManager';
-import TypeUtils from '../core/utils/TypeUtils';
+import Type from '../core/design/Type';
 import PGDBConnection from './PGDBConnection';
 import SchemasDecorators from '../core/decorators/SchemasDecorators';
+import InvalidOperationException from '../core/exceptions/InvalidOperationException';
+import { DBTypes } from '../Index';
 
 
 export default class PGDBManager implements IDBManager
@@ -41,7 +43,7 @@ export default class PGDBManager implements IDBManager
 
         return this.CreatePromisse<boolean>(async ()=>
         {
-            let table = TypeUtils.GetTableName(cTor);
+            let table = Type.GetTableName(cTor);
 
             await this._connection.Open();
 
@@ -54,11 +56,11 @@ export default class PGDBManager implements IDBManager
 
         return this.CreatePromisse<void>(async ()=>
         {
-            let table = TypeUtils.GetTableName(cTor);
+            let table = Type.GetTableName(cTor);
 
             await this._connection.Open();
 
-            await this._connection.Execute(`create table if not exists ${table}();`);
+            await this._connection.Execute(`create table if not exists "${table}"();`);
             
         });
     }
@@ -66,9 +68,9 @@ export default class PGDBManager implements IDBManager
 
         return this.CreatePromisse<boolean>(async ()=>
         {
-            let table = TypeUtils.GetTableName(cTor);
+            let table = Type.GetTableName(cTor);
 
-            let column = TypeUtils.GetColumnName(cTor, key);
+            let column = Type.GetColumnName(cTor, key);
 
             await this._connection.Open();
 
@@ -81,19 +83,53 @@ export default class PGDBManager implements IDBManager
 
         return this.CreatePromisse<void>(async ()=>
         {
-            let table = TypeUtils.GetTableName(cTor);
+            let table = Type.GetTableName(cTor);
 
-            let column = TypeUtils.GetColumnName(cTor, key);
+            let column = Type.GetColumnName(cTor, key);
 
-            let type = this.CastToPostgreSQLType(TypeUtils.GetDesingTimeType(cTor, key)!);
+            let type = "";
+
+            try{
+
+                type = this.CastToPostgreSQLType(Type.GetDesingTimeTypeName(cTor, key)!);
+
+            }catch(ex)
+            {
+                if(!(ex instanceof TypeNotSuportedException))
+                    throw ex;
+                
+                let subType = Type.GetDesingType(cTor, key);
+
+                if(subType == Array)
+                {
+                    subType = SchemasDecorators.GetRelationWithAttribute(cTor, key);
+
+                    if(subType == undefined)
+                    {
+                        throw new InvalidOperationException(`Can not determine the relation of porperty ${cTor.name}${key}`);
+                    }
+
+                } 
+
+                let relatedKey = SchemasDecorators.ExtractPrimaryKey(subType!);
+
+                if(!relatedKey)
+                    throw new InvalidOperationException(`Can not determine the primary key of ${cTor.name}`); 
+
+                type = this.CastToPostgreSQLType(Type.GetDesingTimeTypeName(subType!, relatedKey)!);
+
+                if(type == DBTypes.SERIAL)
+                    type = this.CastToPostgreSQLType(DBTypes.LONG);
+                
+            }
             
             await this._connection.Open();
 
-            await this._connection.Execute(`alter table ${table} add column ${column} ${type};`);
+            await this._connection.Execute(`alter table "${table}" add column "${column}" ${type};`);
 
             if(SchemasDecorators.IsPrimaryKey(cTor, key))
             {
-                await this._connection.Execute(`alter table ${table} add constraint ${table}_${column}_pk primary key (${column});`);
+                await this._connection.Execute(`alter table "${table}" add constraint ${table}_${column}_pk primary key (${column});`);
             }
             
         });
@@ -103,7 +139,7 @@ export default class PGDBManager implements IDBManager
         return this.CreatePromisse<void>(async ()=>
         {
             
-            let table_name = TypeUtils.GetTableName(cTor);            
+            let table_name = Type.GetTableName(cTor);            
             
             if(table_name == undefined)
                 throw new TypeNotSuportedException(`The type ${cTor.name} is not supported. Can not determine the table name of type`);
@@ -113,7 +149,7 @@ export default class PGDBManager implements IDBManager
             if(!await this.CheckTable(cTor))
                 await this.CreateTable(cTor);
             
-            for(let column of TypeUtils.GetProperties(cTor))
+            for(let column of Type.GetProperties(cTor))
             {
                 if(!await this.CheckColumn(cTor, column))
                 {

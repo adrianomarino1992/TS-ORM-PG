@@ -5,7 +5,7 @@ import SchemasDecorators from '../decorators/SchemasDecorators';
 import { DBTypes } from '../enums/DBTypes';
 import TypeNotSuportedException from '../exceptions/TypeNotSuportedException';
 
-export default class TypeUtils
+export default class Type
 {
     public static GetProperties(cTor : Function)
     {
@@ -14,15 +14,18 @@ export default class TypeUtils
         return Object.keys(empty);
     }
 
-
-    public static GetDesingTimeType(cTor : Function, propertyName : string) : string | undefined
+    public static GetDesingType(cTor : Function, propertyName : string) : {new (...args: any[]) : unknown} | undefined
     {
-        let empty = Reflect.construct(cTor, []);
+        return Reflect.getMetadata("design:type", cTor.prototype, propertyName) as {new (...args: any[]) : unknown};
+    }
+
+    public static GetDesingTimeTypeName(cTor : Function, propertyName : string) : string | undefined
+    {        
 
         let type = SchemasDecorators.GetDataTypeAttribute(cTor, propertyName);
 
         if(type == undefined)
-            type = Reflect.getMetadata("design:type", empty, propertyName);
+            type = Reflect.getMetadata("design:type", cTor.prototype, propertyName);
 
             if(typeof type === "function")
                 type = (type as any).name;        
@@ -31,12 +34,24 @@ export default class TypeUtils
         
     }
    
+    public static InjectMetadata(object : any, metadata : {Field : string, Type : DBTypes, Value : any, Loaded : boolean})
+    {
+        let meta = Type.ExtractMetadata(object);
+
+        meta.push(metadata);
+
+        Reflect.set(object, '_orm_metadata_', meta);
+    }
+
+    public static ExtractMetadata(object : any) : Parameters<typeof Type.InjectMetadata>[1][]
+    {
+        return Reflect.get(object, '_orm_metadata_') as Parameters<typeof Type.InjectMetadata>[1][] ?? [];       
+    }
+
 
     public static GetTableName(cTor : Function) : string 
     {
-        let empty = Reflect.construct(cTor, []);
-
-        return SchemasDecorators.GetTableAttribute(empty.constructor) ?? cTor.name;
+        return SchemasDecorators.GetTableAttribute(cTor) ?? cTor.name;
     }
 
     public static GetColumnName(cTor : Function, key : string) : string 
@@ -45,20 +60,24 @@ export default class TypeUtils
     }
 
 
-    public static GetColumnNameAndType(cTor : Function) : { [key : string] : string[] }
+    public static GetColumnNameAndType(cTor : Function) : { Field : string, Column : string, Type : string }[]
     {  
-        let keys = TypeUtils.GetProperties(cTor);
+        let keys = Type.GetProperties(cTor).filter(s => SchemasDecorators.GetColumnAttribute(cTor, s) != undefined);
 
-        let values : { [key : string] : string[]} = {} 
+        let values :  { Field : string, Column : string, Type : string }[] = []
 
         for(let key of keys)
         {
-            let meta = TypeUtils.GetColumnName(cTor, key);
-            let type = TypeUtils.GetDesingTimeType(cTor, key);
+            let meta = Type.GetColumnName(cTor, key);
+            let type = Type.GetDesingTimeTypeName(cTor, key);
 
             if(meta != undefined && type)
             {               
-                values[key.toString()] = [meta, type];
+                values.push({
+                    Field : key.toString(), 
+                    Column : meta, 
+                    Type : type
+                });
             }            
         }
 

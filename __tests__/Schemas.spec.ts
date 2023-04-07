@@ -1,16 +1,20 @@
 
 
-import TypeUtils from "../src/core/utils/TypeUtils";
+import { TryAsync, CreateConnection } from "./TestFunctions";
+import Type from "../src/core/design/Type";
 import PGConnection from "../src/implementations/PGDBConnection";
 import PGDBManager from "../src/implementations/PGDBManager";
+import Context from "./classes/TestContext";
 import {Person} from './classes/TestEntity';
+
+
 
 describe("Types and metadata", ()=>{
     
 
     test("Testing if a database exists", async ()=>{
 
-        var conn = new PGConnection("localhost", 5434, "test_db", "supervisor", "sup");
+        var conn = CreateConnection();
 
         var manager = new PGDBManager(conn);
 
@@ -25,7 +29,7 @@ describe("Types and metadata", ()=>{
 
     test("Testing create a database", async ()=>{
 
-        var conn = new PGConnection("localhost", 5434, "test_db", "supervisor", "sup");
+        var conn = CreateConnection();
 
         var manager = new PGDBManager(conn);
 
@@ -34,6 +38,7 @@ describe("Types and metadata", ()=>{
         if(test_db)
         {
             await conn.AsPostgres().Open();
+            await conn.ExecuteNonQuery(`select pg_terminate_backend(pid) from pg_stat_activity where datname = 'test_db';`)
             await conn.ExecuteNonQuery(`drop database test_db;`);
             await conn.Close();
         }
@@ -52,7 +57,7 @@ describe("Types and metadata", ()=>{
     
         test("Testing create a table and checking if it was created", async ()=>{
     
-            var conn = new PGConnection("localhost", 5434, "test_db", "supervisor", "sup");
+            var conn = CreateConnection();
     
             var manager = new PGDBManager(conn);
     
@@ -79,8 +84,8 @@ describe("Types and metadata", ()=>{
 
             test("Testing if a column exists", async ()=>{
     
-                var conn = new PGConnection("localhost", 5434, "test_db", "supervisor", "sup");
-        
+                var conn = CreateConnection();
+
                 var manager = new PGDBManager(conn);
         
                 let table = await manager.CheckColumn(Person, 'Name');
@@ -122,32 +127,41 @@ describe("Types and metadata", ()=>{
 
             test("Testing crete columns from a objetc", async ()=>{
     
-                var conn = new PGConnection("localhost", 5434, "test_db", "supervisor", "sup");
-        
-                var manager = new PGDBManager(conn);
-        
-                let tableName = TypeUtils.GetTableName(Person);
-                let columns = TypeUtils.GetColumnNameAndType(Person);
+                await TryAsync(async()=>{
 
-                let table = await manager.CheckTable(Person);                
+                    var conn = new PGConnection("localhost", 5434, "test_db", "supervisor", "sup");
+        
+                    var manager = new PGDBManager(conn);
+            
+                    var context = new Context(manager);  
 
-                if(table)
+                    for(let t of context.GetMappedTypes())
+                    {
+                        if(await manager.CheckTable(t))
+                        {
+                            await conn.Open();
+                            await conn.ExecuteNonQuery(`drop table ${Type.GetTableName(t)};`);
+                            await conn.Close();
+                        }
+                    } 
+
+                    await context.UpdateDatabaseAsync();
+
+                    for(let t of context.GetMappedTypes())
+                    {
+                    expect(await manager.CheckTable(t)).toBeTruthy();
+
+                    for(let c of Type.GetColumnNameAndType(t))
+                    {
+                        expect(await manager.CheckColumn(t, c.Field));
+                    }
+                    
+                    }
+                }, err => 
                 {
-                    await conn.Open();
-                    await conn.ExecuteNonQuery(`drop table ${tableName};`);
-                    await conn.Close();
-                }
-
-                await manager.UpdateDatabaseForEntity(Person);
-
-                table = await manager.CheckTable(Person);
+                    throw err;
+                });
                 
-                expect(table).toBeTruthy();
-
-                for(let column of TypeUtils.GetProperties(Person))
-                {
-                    expect(await manager.CheckColumn(Person, column)).toBeTruthy();
-                }
         
             });
         
