@@ -59,6 +59,25 @@ export default class Type
         return SchemasDecorators.GetColumnAttribute(cTor, key)!;
     }
 
+    public static HasValue(obj : any) : boolean
+    {
+        if(typeof obj == "string")
+        {
+            return obj.length > 0;
+        }
+
+        if(typeof obj == "number")
+        {
+            return obj > 0;
+        }
+
+        if(typeof obj == "object")
+        {
+            return obj != undefined;
+        }
+
+        return false;
+    }
 
     public static GetColumnNameAndType(cTor : Function) : { Field : string, Column : string, Type : string }[]
     {  

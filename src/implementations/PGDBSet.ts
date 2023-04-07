@@ -187,12 +187,33 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
             let update = `update ${this._table} set`;
             let values = "";
 
+            let key : {Property : string, Column : string} | undefined;
+            let subTypes : typeof this._maps = [];
+
             for(let map of this._maps)
             {
+                let designType = Type.GetDesingType(this._type, map.Field);
+
+                if(designType && this._context.IsMapped(designType))
+                {
+                    subTypes.push({
+                        Column : map.Column, 
+                        Field : map.Field, 
+                        Type : map.Type
+                    });
+                    
+                    continue;
+                }
+
                 let colType = Type.CastType(map.Type);
 
                 if(SchemasDecorators.IsPrimaryKey(this._type, map.Field))
                 {
+                    key = 
+                        {
+                            Column : map.Column, 
+                            Property : map.Field
+                        }
                     continue;
                 }
 
@@ -208,6 +229,83 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
             }  
 
             await this._manager.ExecuteNonQuery(update);
+
+            let subTypesUpdates : string[] = [];
+            for(let sub of subTypes)
+            {
+               
+                let subType = Type.GetDesingType(this._type, sub.Field)!;
+                let subObj = Reflect.get(obj, sub.Field);
+                let subPK = SchemasDecorators.ExtractPrimaryKey(subType);
+
+                if(subPK == undefined)
+                {
+                    throw new InvalidOperationException(`The type ${subType.name} must have a primary key column`);
+                }
+
+                let columnType = Type.CastType(Type.GetDesingTimeTypeName(subType, subPK!)!);                    
+                let metadata = Type.ExtractMetadata(obj);
+                let meta = metadata.filter(s => s.Field == sub.Field);
+
+                if(meta.length > 0 && subObj == undefined)
+                {
+                    if(meta[0].Loaded)
+                        subTypesUpdates.push(`"${sub.Column}" = null`);
+                        
+                    continue;
+                }                
+
+                if(key != undefined){
+                    for(let subKey of Type.GetProperties(subType))
+                    {
+                        let relation = SchemasDecorators.GetRelationWithAttribute(subType, subKey);
+                       
+                        if(relation && relation == this._type){
+
+                            let thisKey = Reflect.get(obj, key.Property);
+                            Reflect.set(subObj as any, subKey, thisKey); 
+                        }
+                    }
+                }
+
+                let colletion = this._context.Collection(subType)!;
+
+                if(Type.HasValue(Reflect.get(subObj as any, subPK)))
+                {
+                    await colletion["AddAsync"](subObj as any);
+                    subTypesUpdates.push(`"${sub.Column}" = ${this.CreateValueStatement(columnType, Reflect.get(subObj as any, subPK))}`);                    
+
+                }else{
+
+                    await colletion["UpdateAsync"](subObj as any);
+                }                
+                
+                               
+            }
+
+            if(subTypesUpdates.length > 0)
+            {
+                let subUpdate = `update "${Type.GetTableName(this._type)}" set `;
+
+                for(let p of subTypesUpdates)
+                {
+                    subUpdate += `${p},`;
+                }
+
+                subUpdate = `${subUpdate.substring(0, subUpdate.length - 1)} where `;               
+                
+                subUpdate += this.EvaluateStatement({
+                    StatementType : StatementType.WHERE, 
+                    Statement : 
+                    {
+                        Field : key!.Property,
+                        Kind : Operation.EQUALS, 
+                        Value : Reflect.get(obj, key!.Property)
+                    }
+                });
+
+                await this._manager.ExecuteNonQuery(subUpdate);
+            }
 
             return obj;
         });
@@ -392,7 +490,7 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
 
                         let loaded : boolean = false;
 
-                        if(includeType != undefined)
+                        if(includeType.length > 0)
                         {
                             loaded = true;
                             let subType = Type.GetDesingType(this._type, map.Field)!;

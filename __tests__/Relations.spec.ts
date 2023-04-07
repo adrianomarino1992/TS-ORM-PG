@@ -43,17 +43,69 @@ describe("Add objects with relations", ()=>{
             .FirstOrDefaultAsync();
             
             expect(msgfromDB).not.toBe(undefined);
+            expect(msgfromDB?.To).toBe(undefined);
+            expect(msgfromDB?.From).not.toBe(undefined);
 
             let metadata = Type.ExtractMetadata(msgfromDB);
 
-            expect(metadata.length).toBe(1);
+            expect(metadata.length).toBe(2);
+
+            await TruncateTablesAsync();
 
         }, err => 
         {
             throw err;
-        })
-       
+        });      
         
-    })
+    });
+
+    describe("update objects with relations", ()=>{
+
+        test("Update Message", async()=>{
+            
+            await TryAsync(async () =>{
     
-})
+                var context = CreateContext();
+    
+                let msg = new Message("some message", new Person("Adriano", "adriano@test.com"));
+        
+                await context.Messages.AddAsync(msg);
+    
+                let msgfromDB = await context.Messages
+                .Join('From')
+                .FirstOrDefaultAsync();
+    
+                expect(msgfromDB).not.toBe(undefined);
+                expect(msgfromDB?.To).toBe(undefined);
+                
+                msgfromDB!.Message = "Changed";
+                msgfromDB!.From = undefined;
+    
+                await context.Messages.UpdateAsync(msgfromDB!);
+    
+                msgfromDB = await context.Messages
+                .Join('From')
+                .FirstOrDefaultAsync();
+                
+                expect(msgfromDB).not.toBe(undefined);
+                expect(msgfromDB!.Message).toBe("Changed");
+                expect(msgfromDB?.To).toBe(undefined);
+                expect(msgfromDB?.From).toBe(undefined);
+    
+                let metadata = Type.ExtractMetadata(msgfromDB);
+    
+                expect(metadata.length).toBe(2);
+
+                await TruncateTablesAsync();
+    
+            }, err => 
+            {
+                throw err;
+            });      
+            
+        });
+        
+    });
+    
+});
+
