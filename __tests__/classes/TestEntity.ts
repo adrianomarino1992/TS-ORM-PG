@@ -1,5 +1,6 @@
 import SchemasDecorators from '../../src/core/decorators/SchemasDecorators'
 import { DBTypes } from '../../src/core/enums/DBTypes';
+import { Message } from './RelationEntity';
 
 @SchemasDecorators.Table("person_tb")
 export class Person
@@ -35,8 +36,13 @@ export class Person
     @SchemasDecorators.Column()
     @SchemasDecorators.DataType(DBTypes.DATE)
     public Birth : Date;
+
+
+    @SchemasDecorators.Column()
+    @SchemasDecorators.RelationWith(Message)
+    public Message? : Message;
     
-    constructor(name : string = "", email : string = "", age : number = 1)
+    constructor(name : string = "", email : string = "", age : number = 1, message? : Message)
     {
         this.Name = name;
         this.Email = email;
@@ -45,6 +51,7 @@ export class Person
         this.PhoneNumbers = [];
         this.Birth = new Date(1992,4,23);       
         this.Documents = []; 
+        this.Message = message;
     }
        
 
