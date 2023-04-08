@@ -2,6 +2,7 @@
 import 'reflect-metadata';
 import { DBTypes } from '../enums/DBTypes';
 import Type from '../design/Type';
+import { RelationType } from '../enums/RelationType';
 
 export default class SchemasDecorators
 {
@@ -9,7 +10,8 @@ export default class SchemasDecorators
     private static _columnAttribute : string = "compile:schema-column";
     private static _dataTypeAttribute : string = "compile:schema-dataType";
     private static _primaryKeyAttribute : string = "compile:schema-primarykey";    
-    private static _relationWithAttribute : string = "compile:schema-relationWith";    
+    private static _relationAttribute : string = "compile:schema-relationWith";    
+    
     
 
     public static Table(name? : string)
@@ -40,20 +42,40 @@ export default class SchemasDecorators
     }
 
 
-    public static RelationWith<T>(lazyBuilder : () =>  {new (...args: any[]) : T})
+    public static OneToOne<T>(lazyBuilder : () =>  {new (...args: any[]) : T})
+    {
+        return SchemasDecorators.Relation<T>(lazyBuilder, RelationType.ONE_TO_ONE);
+    }    
+
+    public static OneToMany<T>(lazyBuilder : () =>  {new (...args: any[]) : T})
+    {
+        return SchemasDecorators.Relation<T>(lazyBuilder, RelationType.ONE_TO_MANY);
+    }   
+
+    public static ManyToOne<T>(lazyBuilder : () =>  {new (...args: any[]) : T})
+    {
+        return SchemasDecorators.Relation<T>(lazyBuilder, RelationType.MANY_TO_ONE);
+    }   
+
+    public static ManyToMany<T>(lazyBuilder : () =>  {new (...args: any[]) : T})
+    {
+        return SchemasDecorators.Relation<T>(lazyBuilder, RelationType.MANY_TO_MANY);
+    } 
+
+    private static Relation<T>(lazyBuilder : () =>  {new (...args: any[]) : T}, relation : RelationType)
     {
         return function (target : Object, propertyName : string)
         {
-            Reflect.defineMetadata(SchemasDecorators._relationWithAttribute, lazyBuilder, target.constructor, propertyName);
+            Reflect.defineMetadata(SchemasDecorators._relationAttribute, { TypeBuilder : lazyBuilder, Relation : relation }, target.constructor, propertyName);
         }
-    }    
-
-    public static GetRelationWithAttribute(cTor : Function, propertyName : string) : Parameters<typeof SchemasDecorators.RelationWith>[0] | undefined
-    {
-        return Reflect.getMetadata(SchemasDecorators._relationWithAttribute, cTor, propertyName);
     }
 
-    
+    public static GetRelationAttribute(cTor : Function, propertyName : string) : { TypeBuilder :() => {new (...args: any[]) : unknown}, Relation : RelationType } | undefined
+    {
+        return Reflect.getMetadata(SchemasDecorators._relationAttribute, cTor, propertyName) as { TypeBuilder : () => {new (...args: any[]) : unknown}, Relation  : RelationType };
+    }
+
+       
     
     public static PrimaryKey()
     {
@@ -100,3 +122,4 @@ export default class SchemasDecorators
 
 
 }
+

@@ -14,19 +14,29 @@ export class Message
     public Message : string;
 
     @SchemasDecorators.Column()
-    @SchemasDecorators.RelationWith(()=> Person)
+    @SchemasDecorators.OneToOne(()=> Person)
     public From? : Person;
 
     @SchemasDecorators.Column()  
-    @SchemasDecorators.RelationWith(()=> Person)  
+    @SchemasDecorators.OneToOne(()=> Person)  
     public To? : Person; 
     
-    
+
+    @SchemasDecorators.Column()  
+    @SchemasDecorators.ManyToOne(()=> Person)  
+    public Writer? : Person; 
+
+    @SchemasDecorators.Column()  
+    @SchemasDecorators.ManyToMany(()=> Person)  
+    public Destinations? : Person[]; 
+
     constructor(message : string, from? : Person, to? : Person)
     {
         this.Message = message;
         this.From = from;
         this.To = to;
+        this.Writer = undefined;
+        this.Destinations = [];
     }
        
 

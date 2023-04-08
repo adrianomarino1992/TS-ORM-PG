@@ -8,6 +8,7 @@ import PGDBConnection from './PGDBConnection';
 import SchemasDecorators from '../core/decorators/SchemasDecorators';
 import InvalidOperationException from '../core/exceptions/InvalidOperationException';
 import { DBTypes } from '../Index';
+import { RelationType } from '../core/enums/RelationType';
 
 
 export default class PGDBManager implements IDBManager
@@ -98,13 +99,14 @@ export default class PGDBManager implements IDBManager
                 
                 let subType = Type.GetDesingType(cTor, key);
 
-                if(subType == undefined || subType == Array){
+                let relation = SchemasDecorators.GetRelationAttribute(cTor, key);
 
-                    let builder = SchemasDecorators.GetRelationWithAttribute(cTor, key);
-                    if(builder)
-                        subType = builder();
+                if(subType == undefined || subType == Array){
                     
-                    if(builder == undefined)
+                    if(relation)
+                        subType = relation.TypeBuilder();
+                    
+                    if(relation == undefined)
                     {
                         throw new InvalidOperationException(`Can not determine the relation of porperty ${cTor.name}${key}`);
                     }
@@ -115,7 +117,15 @@ export default class PGDBManager implements IDBManager
                 if(!relatedKey)
                     throw new InvalidOperationException(`Can not determine the primary key of ${cTor.name}`); 
 
-                type = this.CastToPostgreSQLType(Type.GetDesingTimeTypeName(subType!, relatedKey)!);
+                if(relation?.Relation == RelationType.ONE_TO_MANY || relation?.Relation == RelationType.MANY_TO_MANY)
+                {
+                    type = this.CastToPostgreSQLType(Type.AsArray(Type.GetDesingTimeTypeName(subType!, relatedKey)!));
+
+                }else{
+
+                    type = this.CastToPostgreSQLType(Type.GetDesingTimeTypeName(subType!, relatedKey)!);
+                }               
+                
 
                 if(type == DBTypes.SERIAL)
                     type = this.CastToPostgreSQLType(DBTypes.LONG);

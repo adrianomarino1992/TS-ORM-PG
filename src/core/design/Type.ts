@@ -33,6 +33,19 @@ export default class Type
         return type?.toString();
         
     }
+
+    public static AsArray(type : string) : string
+    {
+
+        if(type == "serial")
+            return DBTypes.LONGARRAY;
+
+        if(type.endsWith("[]"))
+            return type;
+        else 
+            return `${type}[]`; 
+        
+    }
    
     public static InjectMetadata(object : any, metadata : {Field : string, Type : DBTypes, Value : any, Loaded : boolean})
     {

@@ -114,9 +114,9 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
                 if(key != undefined){
                     for(let subKey of Type.GetProperties(subType))
                     {
-                        let relation = SchemasDecorators.GetRelationWithAttribute(subType, subKey);
+                        let relation = SchemasDecorators.GetRelationAttribute(subType, subKey);
                        
-                        if(relation && relation() == this._type){
+                        if(relation && relation.TypeBuilder() == this._type){
 
                             let thisKey = Reflect.get(obj, key.Property);
                             Reflect.set(subObj as any, subKey, thisKey); 
@@ -258,9 +258,9 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
                 if(key != undefined){
                     for(let subKey of Type.GetProperties(subType))
                     {
-                        let relation = SchemasDecorators.GetRelationWithAttribute(subType, subKey);
+                        let relation = SchemasDecorators.GetRelationAttribute(subType, subKey);
                        
-                        if(relation && relation() == this._type){
+                        if(relation && relation.TypeBuilder() == this._type){
 
                             let thisKey = Reflect.get(obj, key.Property);
                             Reflect.set(subObj as any, subKey, thisKey); 

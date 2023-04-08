@@ -39,8 +39,13 @@ export class Person
 
 
     @SchemasDecorators.Column()
-    @SchemasDecorators.RelationWith(()=> Message)
+    @SchemasDecorators.OneToOne(()=> Message)
     public Message? : Message;
+
+    @SchemasDecorators.Column()
+    @SchemasDecorators.OneToMany(()=> Message)
+    public Messages? : Message[];
+    
     
     constructor(name : string = "", email : string = "", age : number = 1, message? : Message)
     {
@@ -52,6 +57,7 @@ export class Person
         this.Birth = new Date(1992,4,23);       
         this.Documents = []; 
         this.Message = message;
+        this.Messages = [];
     }
        
 
