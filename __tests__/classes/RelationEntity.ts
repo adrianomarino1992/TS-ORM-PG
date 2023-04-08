@@ -14,9 +14,11 @@ export class Message
     public Message : string;
 
     @SchemasDecorators.Column()
+    @SchemasDecorators.RelationWith(()=> Person)
     public From? : Person;
 
-    @SchemasDecorators.Column()    
+    @SchemasDecorators.Column()  
+    @SchemasDecorators.RelationWith(()=> Person)  
     public To? : Person; 
     
     

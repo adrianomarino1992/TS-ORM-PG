@@ -40,11 +40,11 @@ export default class SchemasDecorators
     }
 
 
-    public static RelationWith(cTor : {new (...args: any[]) : unknown})
+    public static RelationWith<T>(lazyBuilder : () =>  {new (...args: any[]) : T})
     {
         return function (target : Object, propertyName : string)
         {
-            Reflect.defineMetadata(SchemasDecorators._relationWithAttribute,cTor, target.constructor, propertyName);
+            Reflect.defineMetadata(SchemasDecorators._relationWithAttribute, lazyBuilder, target.constructor, propertyName);
         }
     }    
 

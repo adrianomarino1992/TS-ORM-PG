@@ -116,7 +116,7 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
                     {
                         let relation = SchemasDecorators.GetRelationWithAttribute(subType, subKey);
                        
-                        if(relation && relation == this._type){
+                        if(relation && relation() == this._type){
 
                             let thisKey = Reflect.get(obj, key.Property);
                             Reflect.set(subObj as any, subKey, thisKey); 
@@ -260,7 +260,7 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
                     {
                         let relation = SchemasDecorators.GetRelationWithAttribute(subType, subKey);
                        
-                        if(relation && relation == this._type){
+                        if(relation && relation() == this._type){
 
                             let thisKey = Reflect.get(obj, key.Property);
                             Reflect.set(subObj as any, subKey, thisKey); 

@@ -94,22 +94,21 @@ export default class PGDBManager implements IDBManager
                 type = this.CastToPostgreSQLType(Type.GetDesingTimeTypeName(cTor, key)!);
 
             }catch(ex)
-            {
-                if(!(ex instanceof TypeNotSuportedException))
-                    throw ex;
+            {               
                 
                 let subType = Type.GetDesingType(cTor, key);
 
-                if(subType == Array)
-                {
-                    subType = SchemasDecorators.GetRelationWithAttribute(cTor, key);
+                if(subType == undefined || subType == Array){
 
-                    if(subType == undefined)
+                    let builder = SchemasDecorators.GetRelationWithAttribute(cTor, key);
+                    if(builder)
+                        subType = builder();
+                    
+                    if(builder == undefined)
                     {
                         throw new InvalidOperationException(`Can not determine the relation of porperty ${cTor.name}${key}`);
                     }
-
-                } 
+                }                
 
                 let relatedKey = SchemasDecorators.ExtractPrimaryKey(subType!);
 

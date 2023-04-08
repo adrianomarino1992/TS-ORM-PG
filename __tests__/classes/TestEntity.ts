@@ -39,7 +39,7 @@ export class Person
 
 
     @SchemasDecorators.Column()
-    @SchemasDecorators.RelationWith(Message)
+    @SchemasDecorators.RelationWith(()=> Message)
     public Message? : Message;
     
     constructor(name : string = "", email : string = "", age : number = 1, message? : Message)
