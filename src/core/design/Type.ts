@@ -102,6 +102,10 @@ export default class Type
         {
             let meta = Type.GetColumnName(cTor, key);
             let type = Type.GetDesingTimeTypeName(cTor, key);
+            let relation = SchemasDecorators.GetRelationAttribute(cTor, key);
+
+            if(!type && relation)
+                type = relation.TypeBuilder().name;
 
             if(meta != undefined && type)
             {               

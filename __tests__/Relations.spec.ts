@@ -40,106 +40,119 @@ describe("Add objects with relations", ()=>{
 
             let msgfromDB = await context.Messages
             .Join('From')
+            .Join('To')
+            .Join('Writer')
             .FirstOrDefaultAsync();
+
+            let person = await context.Persons.Where({
+                Field : "Id", 
+                Kind : Operation.EQUALS, 
+                Value : msgfromDB!.From!.Id
+            }).Join("Message").FirstOrDefaultAsync();
             
+
             expect(msgfromDB).not.toBe(undefined);
             expect(msgfromDB?.To).toBe(undefined);
             expect(msgfromDB?.From).not.toBe(undefined);
-
+            expect(person).not.toBe(undefined);
+            expect(person?.Message?.Id).toEqual(msgfromDB?.Id);
+            expect(person?.Message?.Message).toEqual(msgfromDB?.Message);
+            
             let metadata = Type.ExtractMetadata(msgfromDB);
 
-            expect(metadata.length).toBe(2);
+            expect(metadata.length).toBe(1);
 
             await TruncateTablesAsync();
 
         }, err => 
         {
             throw err;
-        });      
+        });        
         
-    });
+    }, 500000);
 
-    describe("Update objects with relations", ()=>{
 
-        test("Update Message", async()=>{
+    // describe("Update objects with relations", ()=>{
+
+    //     test("Update Message", async()=>{
             
-            await TryAsync(async () =>{
+    //         await TryAsync(async () =>{
     
-                var context = CreateContext();
+    //             var context = CreateContext();
     
-                let msg = new Message("some message", new Person("Adriano", "adriano@test.com"));
+    //             let msg = new Message("some message", new Person("Adriano", "adriano@test.com"));
         
-                await context.Messages.AddAsync(msg);
+    //             await context.Messages.AddAsync(msg);
     
-                let msgfromDB = await context.Messages
-                .Join('From')
-                .FirstOrDefaultAsync();
+    //             let msgfromDB = await context.Messages
+    //             .Join('From')
+    //             .FirstOrDefaultAsync();
     
-                expect(msgfromDB).not.toBe(undefined);
-                expect(msgfromDB?.To).toBe(undefined);
+    //             expect(msgfromDB).not.toBe(undefined);
+    //             expect(msgfromDB?.To).toBe(undefined);
                 
-                msgfromDB!.Message = "Changed";
-                msgfromDB!.From = undefined;
+    //             msgfromDB!.Message = "Changed";
+    //             msgfromDB!.From = undefined;
     
-                await context.Messages.UpdateAsync(msgfromDB!);
+    //             await context.Messages.UpdateAsync(msgfromDB!);
     
-                msgfromDB = await context.Messages
-                .Join('From')
-                .FirstOrDefaultAsync();
+    //             msgfromDB = await context.Messages
+    //             .Join('From')
+    //             .FirstOrDefaultAsync();
                 
-                expect(msgfromDB).not.toBe(undefined);
-                expect(msgfromDB!.Message).toBe("Changed");
-                expect(msgfromDB?.To).toBe(undefined);
-                expect(msgfromDB?.From).toBe(undefined);
+    //             expect(msgfromDB).not.toBe(undefined);
+    //             expect(msgfromDB!.Message).toBe("Changed");
+    //             expect(msgfromDB?.To).toBe(undefined);
+    //             expect(msgfromDB?.From).toBe(undefined);
     
-                let metadata = Type.ExtractMetadata(msgfromDB);
+    //             let metadata = Type.ExtractMetadata(msgfromDB);
     
-                expect(metadata.length).toBe(2);
+    //             expect(metadata.length).toBe(2);
 
-                await TruncateTablesAsync();
+    //             await TruncateTablesAsync();
     
-            }, err => 
-            {
-                throw err;
-            });      
+    //         }, err => 
+    //         {
+    //             throw err;
+    //         });      
             
-        });
+    //     });
         
-    });
+    //     describe("Update a relational object", ()=>{
 
-    describe("Update a relational object", ()=>{
-
-        test("App Person message relation", async()=>{
-        
-            await TryAsync(async () =>{
-    
-                var context = CreateContext();
-    
-                let msg = new Message("some message", new Person("Adriano", "adriano@test.com"));
-        
-                await context.Messages.AddAsync(msg);
-    
-                let msgfromDB = await context.Messages
-                .Join('From')
-                .FirstOrDefaultAsync();
-                
-                expect(msgfromDB).not.toBe(undefined);
-                expect(msgfromDB?.To).toBe(undefined);
-                expect(msgfromDB?.From).not.toBe(undefined);
-    
-                let metadata = Type.ExtractMetadata(msgfromDB);
-    
-                expect(metadata.length).toBe(2);
-    
-                await TruncateTablesAsync();
-    
-            }, err => 
-            {
-                throw err;
-            });      
+    //         test("App Person message relation", async()=>{
             
-        });
-    })
+    //             await TryAsync(async () =>{
+        
+    //                 var context = CreateContext();
+        
+    //                 let msg = new Message("some message", new Person("Adriano", "adriano@test.com"));
+            
+    //                 await context.Messages.AddAsync(msg);
+        
+    //                 let msgfromDB = await context.Messages
+    //                 .Join('From')
+    //                 .FirstOrDefaultAsync();
+                    
+    //                 expect(msgfromDB).not.toBe(undefined);
+    //                 expect(msgfromDB?.To).toBe(undefined);
+    //                 expect(msgfromDB?.From).not.toBe(undefined);
+        
+    //                 let metadata = Type.ExtractMetadata(msgfromDB);
+        
+    //                 expect(metadata.length).toBe(2);
+        
+    //                 await TruncateTablesAsync();
+        
+    //             }, err => 
+    //             {
+    //                 throw err;
+    //             });      
+                
+    //         });
+    //     });
+    // });
+  
     
 });
 

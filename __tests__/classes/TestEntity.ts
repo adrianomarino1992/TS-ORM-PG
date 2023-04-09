@@ -39,11 +39,15 @@ export class Person
 
 
     @SchemasDecorators.Column()
-    @SchemasDecorators.OneToOne(()=> Message)
+    @SchemasDecorators.OneToOne(()=> Message, "From")
     public Message? : Message;
 
     @SchemasDecorators.Column()
-    @SchemasDecorators.OneToMany(()=> Message)
+    @SchemasDecorators.OneToOne(()=> Message, "To")
+    public Received? : Message;
+
+    @SchemasDecorators.Column()
+    @SchemasDecorators.OneToMany(()=> Message, "Message")
     public Messages? : Message[];
     
     
