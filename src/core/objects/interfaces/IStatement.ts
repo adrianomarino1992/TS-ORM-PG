@@ -3,7 +3,7 @@
 export default interface IStatement<T, K extends keyof T>
 {
     Field : K, 
-    Kind : Operation, 
+    Kind? : Operation, 
     Value : T[K]
 }
 

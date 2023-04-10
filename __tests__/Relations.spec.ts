@@ -28,6 +28,7 @@ beforeAll(async ()=> await TruncateTablesAsync());
 
 describe("Add objects with relations", ()=>{
 
+    
     test("Add Message with persons", async()=>{
         
         await TryAsync(async () =>{
@@ -47,6 +48,10 @@ describe("Add objects with relations", ()=>{
             await context.Messages.AddAsync(msg);
 
             let msgfromDB = await context.Messages
+            .Where({
+                Field : "Id", 
+                Value : msg.Id
+            })
             .Join('From')
             .Join('To')            
             .FirstOrDefaultAsync();
@@ -65,7 +70,105 @@ describe("Add objects with relations", ()=>{
             throw err;
         });        
         
-    }, 500000);
+    });
+    
+
+
+    
+
+    describe("Update a relationated object", ()=>{
+
+        
+        test("Update person of a message without save person directly", async()=>{
+        
+            await TryAsync(async () =>{
+    
+                var context = CreateContext();
+    
+                let person = new Person("Adriano", "adriano@test.com");
+                let msg = new Message("some message", person);
+        
+                await context.Messages.AddAsync(msg);
+    
+                let personDB = await context.Persons
+                .Join('MessagesWriten')
+                .Where({
+                    Field : "Id",                      
+                    Value : person.Id
+                })
+                .FirstOrDefaultAsync();
+                
+                expect(personDB).not.toBe(undefined);
+                expect(personDB?.MessagesWriten).not.toBe(undefined);
+                expect(personDB?.MessagesWriten?.length).toBe(1);     
+                
+    
+            }, err => 
+            {
+                throw err;
+            });      
+            
+        });
+
+        
+
+        test("Update some destination of a message without save person directly", async()=>{
+        
+            await TryAsync(async () =>{
+    
+                var context = CreateContext();
+    
+                let adriano = new Person("Adriano", "adriano@test.com");
+                let camila = new Person("Camila", "camila@test.com");
+                let juliana = new Person("Juliana", "juliana@test.com");
+                let andre = new Person("Andre", "andre@test.com");
+
+                let msg = new Message("some message", 
+                    adriano, 
+                    [
+                        camila,
+                        juliana, 
+                        andre
+    
+                    ]);
+        
+                await context.Messages.AddAsync(msg);
+    
+                let camilaDB = await context.Persons
+                .Join('MessagesReceived')
+                .Where({
+                    Field : "Id", 
+                    Value : camila.Id
+                })
+                .FirstOrDefaultAsync();
+
+                let julianaDB = await context.Persons
+                .Join('MessagesReceived')
+                .Where({
+                    Field : "Id", 
+                    Value : juliana.Id
+                })
+                .FirstOrDefaultAsync();
+                
+                expect(camilaDB).not.toBe(undefined);
+                expect(camilaDB?.MessagesWriten).toEqual([]);
+                expect(camilaDB?.MessagesReceived?.length).toBe(1);     
+                expect(julianaDB?.MessagesReceived?.length).toBe(1);     
+                
+    
+            }, err => 
+            {
+                throw err;
+            });      
+            
+        });
+
+    });
+
+    
+
+
+    
 
 
     
@@ -111,10 +214,7 @@ describe("Add objects with relations", ()=>{
                 expect(msgfromDB!.Message).toBe("Changed");
                 expect(msgfromDB?.To).toBe(undefined);
                 expect(msgfromDB?.From).toBe(undefined);
-    
-               
-
-                await TruncateTablesAsync();
+                
     
             }, err => 
             {
@@ -137,14 +237,17 @@ describe("Add objects with relations", ()=>{
         
                     let msgfromDB = await context.Messages
                     .Join('From')
+                    .Where({
+                        Field : "Id", 
+                        Kind : Operation.EQUALS, 
+                        Value : msg.Id
+                    })
                     .FirstOrDefaultAsync();
                     
                     expect(msgfromDB).not.toBe(undefined);
                     expect(msgfromDB?.To).toBe(undefined);
-                    expect(msgfromDB?.From).not.toBe(undefined);       
-                    
-        
-                    await TruncateTablesAsync();
+                    expect(msgfromDB?.From).not.toBe(undefined);  
+                   
         
                 }, err => 
                 {
@@ -154,6 +257,8 @@ describe("Add objects with relations", ()=>{
             });
         });
     });
+
+    
     
   
     

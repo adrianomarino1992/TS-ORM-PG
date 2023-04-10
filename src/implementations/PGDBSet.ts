@@ -157,6 +157,12 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
                                         value.push(obj);
                                         Reflect.set(i as any, subKey, value);
                                     }
+                                }else{
+
+                                    let value : any[] = ((Reflect.get(subObj, subKey) ?? []) as Array<typeof this._type>).filter(s => (s as any)[subPK!] != (obj as any)[subPK!]);                                
+                                    value.push(obj);
+                                    Reflect.set(subObj, subKey, value);
+
                                 }
                                
                             }else{
@@ -527,7 +533,7 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
             Statement : 
             {
                 Field : statement.Field.toString(), 
-                Kind : statement.Kind, 
+                Kind : statement.Kind ?? Operation.EQUALS, 
                 Value : statement.Value
             }, 
             StatementType : StatementType.WHERE
@@ -543,7 +549,7 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
                 Statement : 
                 {
                     Field : statement.Field.toString(), 
-                    Kind : statement.Kind, 
+                    Kind : statement.Kind ?? Operation.EQUALS, 
                     Value : statement.Value
                 },  
                 StatementType : StatementType.AND
@@ -559,7 +565,7 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
             Statement : 
             {
                 Field : statement.Field.toString(), 
-                Kind : statement.Kind, 
+                Kind : statement.Kind ?? Operation.EQUALS, 
                 Value : statement.Value
             }, 
             StatementType : StatementType.OR
@@ -685,6 +691,9 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
                             if(relation?.Relation == RelationType.MANY_TO_MANY || relation?.Relation == RelationType.ONE_TO_MANY)
                             {
                                 let values = Reflect.get(row, map.Column);
+
+                                if(!values || values.length == 0)
+                                    continue;
 
                                 colletion.Where({
                                     Field : subKey as keyof typeof type, 
@@ -827,6 +836,9 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
         let column = Type.GetColumnName(this._type, pgStatement.Statement.Field.toString());
         let type = Type.GetDesingTimeTypeName(this._type, pgStatement.Statement.Field.toString());
         let operation = this.GetOperators(pgStatement.Statement.Kind);
+
+        if(pgStatement.Statement.Value == undefined)
+            return `${column} is null`;
 
         if(Type.IsNumber(Type.CastType(type!.toString())))
         {
