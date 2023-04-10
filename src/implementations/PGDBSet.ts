@@ -147,21 +147,33 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
                             if(subRelation.Field != undefined && subRelation.Field != sub.Field)
                                 continue;
 
-                            let value : any = obj;
-
                             if(subRelation.Relation == RelationType.ONE_TO_MANY || subRelation.Relation == RelationType.MANY_TO_MANY)
-                                value = [obj];
-
-                            if(isArray)
                             {
-                                for(let i of subObj as Array<typeof subType>)
+                                if(isArray)
                                 {
-                                    Reflect.set(i as any, subKey, value);
+                                    for(let i of subObj as Array<typeof subType>)
+                                    {
+                                        let value : any[] = ((Reflect.get(i, subKey) ?? []) as Array<typeof subType>).filter(s => (s as any)[subPK!] != (obj as any)[subPK!]);                                
+                                        value.push(obj);
+                                        Reflect.set(i as any, subKey, value);
+                                    }
                                 }
+                               
                             }else{
 
-                                Reflect.set(subObj as any, subKey, value);
-                            }                             
+                                if(subRelation.Relation == RelationType.MANY_TO_ONE)
+                                {
+                                    for(let i of subObj as Array<typeof subType>)
+                                    {                                        
+                                        Reflect.set(i as any, subKey, obj);
+                                    }
+                                }else{
+
+                                    Reflect.set(subObj as any, subKey, obj);
+                                }
+                            }
+
+                                                      
 
                         }
                     }
@@ -192,8 +204,20 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
 
                 if(relation?.Relation == RelationType.MANY_TO_MANY || relation?.Relation == RelationType.ONE_TO_MANY)
                     columnType = Type.AsArray(columnType) as DBTypes;
-                    
-                subTypesUpdates.push(`"${sub.Column}" = ${this.CreateValueStatement(columnType, Reflect.get(subObj as any, subPK))}`);
+                
+                let updateValues = [Reflect.get(subObj as any, subPK)];
+
+                if(isArray)
+                {
+                    updateValues = [];
+
+                    for(let i of subObj as Array<typeof subType>)
+                    {
+                        updateValues.push(Reflect.get(i as any, subPK));
+                    }
+                }
+
+                subTypesUpdates.push(`"${sub.Column}" = ${this.CreateValueStatement(columnType, isArray ? updateValues : updateValues[0])}`);
                                
             }
 
@@ -357,25 +381,38 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
                             if(subRelation.Field != undefined && subRelation.Field != sub.Field)
                                 continue;
 
-                            let value : any = obj;
-
                             if(subRelation.Relation == RelationType.ONE_TO_MANY || subRelation.Relation == RelationType.MANY_TO_MANY)
-                                value = [obj];
-
-                            if(isArray)
                             {
-                                for(let i of subObj as Array<typeof subType>)
+                                if(isArray)
                                 {
-                                    Reflect.set(i as any, subKey, value);
+                                    for(let i of subObj as Array<typeof subType>)
+                                    {
+                                        let value : any[] = ((Reflect.get(i, subKey) ?? []) as Array<typeof subType>).filter(s => (s as any)[subPK!] != (obj as any)[subPK!]);                                
+                                        value.push(obj);
+                                        Reflect.set(i as any, subKey, value);
+                                    }
                                 }
+                               
                             }else{
 
-                                Reflect.set(subObj as any, subKey, value);
-                            }                             
+                                if(subRelation.Relation == RelationType.MANY_TO_ONE)
+                                {
+                                    for(let i of subObj as Array<typeof subType>)
+                                    {                                        
+                                        Reflect.set(i as any, subKey, obj);
+                                    }
+                                }else{
+
+                                    Reflect.set(subObj as any, subKey, obj);
+                                }
+                            }
+
+                                                      
 
                         }
                     }
                 }
+
 
                 let colletion = this._context.Collection(subType)!;
                 
@@ -403,7 +440,19 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
                 if(relation?.Relation == RelationType.MANY_TO_MANY || relation?.Relation == RelationType.ONE_TO_MANY)
                     columnType = Type.AsArray(columnType) as DBTypes;
                     
-                subTypesUpdates.push(`"${sub.Column}" = ${this.CreateValueStatement(columnType, Reflect.get(subObj as any, subPK))}`);
+                    let updateValues = [Reflect.get(subObj as any, subPK)];
+
+                    if(isArray)
+                    {
+                        updateValues = [];
+    
+                        for(let i of subObj as Array<typeof subType>)
+                        {
+                            updateValues.push(Reflect.get(i as any, subPK));
+                        }
+                    }
+    
+                    subTypesUpdates.push(`"${sub.Column}" = ${this.CreateValueStatement(columnType, isArray ? updateValues : updateValues[0])}`);
                                
             }
 
@@ -608,7 +657,7 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
                 {
                     let type = Type.GetDesingType(this._type, map.Field);
                     let relation = SchemasDecorators.GetRelationAttribute(this._type, map.Field);
-                    if(!type && relation)
+                    if((!type || type === Array) && relation)
                         type = relation.TypeBuilder();
 
                     if(!this._context.IsMapped(type!))
@@ -632,14 +681,46 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
                                 continue;
 
                             let subKey = SchemasDecorators.ExtractPrimaryKey(type!)!;
-                            colletion.Where({
-                                Field : subKey as keyof typeof type, 
-                                Kind : Operation.EQUALS, 
-                                Value : Reflect.get(row, map.Column) as typeof type[keyof typeof type & string]
-                            });
 
-                            let subObjet = await colletion.FirstOrDefaultAsync();
-                            Reflect.set(instance, map.Field, subObjet);
+                            if(relation?.Relation == RelationType.MANY_TO_MANY || relation?.Relation == RelationType.ONE_TO_MANY)
+                            {
+                                let values = Reflect.get(row, map.Column);
+
+                                colletion.Where({
+                                    Field : subKey as keyof typeof type, 
+                                    Kind : Operation.EQUALS, 
+                                    Value : values[0] as typeof type[keyof typeof type & string]
+                                });
+
+                                for(let i = 0; i < values.length; i++)
+                                {
+                                    if(i == 0)
+                                        continue;
+
+                                    colletion.Or({
+                                        Field : subKey as keyof typeof type, 
+                                        Kind : Operation.EQUALS, 
+                                        Value : values[i] as typeof type[keyof typeof type & string]
+                                    });
+                                }
+
+                                let subObjets = await colletion.ToListAsync();
+                                Reflect.set(instance, map.Field, subObjets);
+
+                            }else{
+
+                                colletion.Where({
+                                    Field : subKey as keyof typeof type, 
+                                    Kind : Operation.EQUALS, 
+                                    Value : Reflect.get(row, map.Column) as typeof type[keyof typeof type & string]
+                                });
+
+                                let subObjet = await colletion.FirstOrDefaultAsync();
+                                Reflect.set(instance, map.Field, subObjet);
+
+                            }
+
+                            
                         }
 
                         Type.InjectMetadata(

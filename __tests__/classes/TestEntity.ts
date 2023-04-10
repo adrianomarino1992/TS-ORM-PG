@@ -39,19 +39,15 @@ export class Person
 
 
     @SchemasDecorators.Column()
-    @SchemasDecorators.OneToOne(()=> Message, "From")
-    public Message? : Message;
+    @SchemasDecorators.OneToMany(()=> Message, "From")
+    public MessagesWriten? : Message[];
 
     @SchemasDecorators.Column()
-    @SchemasDecorators.OneToOne(()=> Message, "To")
-    public Received? : Message;
+    @SchemasDecorators.OneToMany(()=> Message, "To")
+    public MessagesReceived? : Message[];
 
-    @SchemasDecorators.Column()
-    @SchemasDecorators.OneToMany(()=> Message, "Message")
-    public Messages? : Message[];
-    
-    
-    constructor(name : string = "", email : string = "", age : number = 1, message? : Message)
+  
+    constructor(name : string = "", email : string = "", age : number = 1)
     {
         this.Name = name;
         this.Email = email;
@@ -60,8 +56,9 @@ export class Person
         this.PhoneNumbers = [];
         this.Birth = new Date(1992,4,23);       
         this.Documents = []; 
-        this.Message = message;
-        this.Messages = [];
+        this.MessagesReceived = [];
+        this.MessagesWriten = [];
+       
     }
        
 

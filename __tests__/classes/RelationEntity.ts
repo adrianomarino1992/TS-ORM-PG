@@ -14,29 +14,19 @@ export class Message
     public Message : string;
 
     @SchemasDecorators.Column()
-    @SchemasDecorators.OneToOne(()=> Person, "Message")
+    @SchemasDecorators.ManyToOne(()=> Person, "MessagesWriten")
     public From? : Person;
 
     @SchemasDecorators.Column()  
-    @SchemasDecorators.OneToOne(()=> Person, "Received")  
-    public To? : Person; 
-    
+    @SchemasDecorators.ManyToMany(()=> Person, "MessagesReceived")  
+    public To? : Person[];     
 
-    @SchemasDecorators.Column()  
-    @SchemasDecorators.ManyToOne(()=> Person, "Messages")  
-    public Writer? : Person; 
 
-    @SchemasDecorators.Column()  
-    @SchemasDecorators.ManyToMany(()=> Person, "Messages")  
-    public Destinations? : Person[]; 
-
-    constructor(message : string, from? : Person, to? : Person)
+    constructor(message : string, from? : Person, to? : Person[])
     {
         this.Message = message;
         this.From = from;
-        this.To = to;
-        this.Writer = undefined;
-        this.Destinations = [];
+        this.To = to;       
     }
        
 
