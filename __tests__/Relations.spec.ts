@@ -110,6 +110,53 @@ describe("Add objects with relations", ()=>{
             
         });
 
+        test("Update message without load person", async()=>{
+        
+            await TryAsync(async () =>{
+    
+                var context = CreateContext();
+    
+                let person = new Person("Adriano", "adriano@test.com");
+                let msg = new Message("some message", person);
+        
+                await context.Messages.AddAsync(msg);
+    
+                let messageDB = await context.Messages                
+                .Where({
+                    Field : "Id",                      
+                    Value : msg.Id
+                })
+                .FirstOrDefaultAsync();
+                
+                expect(messageDB).not.toBe(undefined);
+                expect(messageDB?.From).toBe(undefined);
+
+
+                messageDB!.Message = "Changed without load person";
+
+                await context.Messages.UpdateAsync(messageDB!);
+
+                messageDB = await context.Messages      
+                .Join("From")          
+                .Where({
+                    Field : "Id",                      
+                    Value : msg.Id
+                })
+                .FirstOrDefaultAsync();
+
+                expect(messageDB?.From?.Name).toBe(person.Name);   
+                expect(messageDB?.From?.Id).toBe(person.Id);   
+
+                expect(messageDB?.Message).toBe("Changed without load person");     
+                
+    
+            }, err => 
+            {
+                throw err;
+            });      
+            
+        });
+
         
 
         test("Update some destination of a message without save person directly", async()=>{
