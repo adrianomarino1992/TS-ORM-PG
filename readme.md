@@ -127,8 +127,8 @@ export class Message
 
 ```typescript
 import { PGDBManager, PGDBContext, PGDBSet} from 'myorm_pg';
-import { Message } from './Message';
-import { Person } from './Person';
+import { Message } from './entities/Message';
+import { Person } from './entities/Person';
 
 
 export default class Context extends PGDBContext
