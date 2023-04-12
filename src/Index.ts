@@ -4,6 +4,7 @@ import PGDBConnection from "./implementations/PGDBConnection";
 import PGDBContext from "./implementations/PGDBContext";
 import PGDBManager from "./implementations/PGDBManager";
 import PGDBSet from "./implementations/PGDBSet";
+import { Operation } from './core/objects/interfaces/IStatement';
 
 
 
@@ -12,6 +13,8 @@ export {PGDBConnection}
 export {PGDBContext}
 export {PGDBManager}
 export {PGDBSet}
+export {Operation}
+
 
 export function Column(name? : string)
 {

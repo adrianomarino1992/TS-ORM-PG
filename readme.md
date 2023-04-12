@@ -1,18 +1,18 @@
-# TS_ORM_PG
+# myorm_pg
 
-ts_orm_pg is a ORM writen with TypeScript with sintax similar with MyORMForPostgreSQL of .NET
+myorm_pg is a ORM writen with TypeScript with sintax similar with MyORMForPostgreSQL of .NET
 
 ## Installation
 
 
 
 ```bash
-npm install ts_orm_pg
+npm install myorm_pg
 ```
 
 
 ## Usage
-First of all we need create all entities we will need mapped. To do that we can use the decorators that the __TS_ORM_PG__ provides.
+First of all we need create all entities we will need mapped. To do that we can use the decorators that the __myorm_pg__ provides.
 After that we need create a class "Context" that will extends the abstract class __PGDBContext__.  
 After that, we need to create all PGDBSets<T> that will need to work with ours mapped types.
 Finally, in the application start, we need call the method __PGDBContext.UpdateDatabaseAsync()__. 
@@ -20,7 +20,7 @@ Finally, in the application start, we need call the method __PGDBContext.UpdateD
 ### ./entities/Person.ts
 
 ```typescript
-import { Table, Column, PrimaryKey, DataType, OneToMany, OneToOne, ManyToMany, DBTypes} from 'ts_orm_pg';
+import { Table, Column, PrimaryKey, DataType, OneToMany, OneToOne, ManyToMany, DBTypes} from 'myorm_pg';
 import { Message } from './Message';
 
 @Table("person_tb")
@@ -89,7 +89,7 @@ export class Person
 ### ./entities/Message.ts
 
 ```typescript
-import { Table, Column, PrimaryKey, DataType, ManyToOne, ManyToMany, DBTypes} from 'ts_orm_pg';
+import { Table, Column, PrimaryKey, DataType, ManyToOne, ManyToMany, DBTypes} from 'myorm_pg';
 import { Person } from './Person';
 
 @Table("message_tb")
@@ -126,7 +126,7 @@ export class Message
 ### Context.ts
 
 ```typescript
-import { PGDBManager, PGDBContext, PGDBSet} from 'ts_orm_pg';
+import { PGDBManager, PGDBContext, PGDBSet} from 'myorm_pg';
 import { Message } from './Message';
 import { Person } from './Person';
 

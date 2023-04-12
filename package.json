@@ -1,6 +1,6 @@
 {
-  "name": "ts_orm_pg",
-  "version": "1.0.0",
+  "name": "myorm_pg",
+  "version": "1.0.1",
   "description": "A ORM writen in typescript for postgres",  
   "main": "Index.js",
   "types": "./lib/Index.d.ts",
@@ -16,6 +16,7 @@
     "database"
   ],
   "author": "adrinao.marino1992@gmail.com",
+  "repository": "https://github.com/adrianomarino1992/TS-ORM-PG.git",
   "license": "ISC",
   "dependencies": {
     "pg": "^8.10.0",
