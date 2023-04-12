@@ -26,7 +26,7 @@ export class Person
     @PrimaryKey()
     @Column()
     @DataType(DBTypes.SERIAL)
-    public Id : number = -1;
+    public Id : number;
 
     @Column()
     public Name : string;
@@ -67,6 +67,7 @@ export class Person
   
     constructor(name : string = "", email : string = "", age : number = 1)
     {
+        this.Id = -1;
         this.Name = name;
         this.Email = email;
         this.Age = age;
