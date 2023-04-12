@@ -12,10 +12,7 @@ npm install myorm_pg
 
 
 ## Usage
-First of all we need create all entities we will need mapped. To do that we can use the decorators that the __myorm_pg__ provides.
-After that we need create a class "Context" that will extends the abstract class __PGDBContext__.  
-After that, we need to create all PGDBSets<T> that will need to work with ours mapped types.
-Finally, in the application start, we need call the method __PGDBContext.UpdateDatabaseAsync()__. 
+This ORM is based on https://www.nuget.org/packages/Adr.MyORMForPostgreSQL for .NET. The usage is similar.
 
 ### ./entities/Person.ts
 
