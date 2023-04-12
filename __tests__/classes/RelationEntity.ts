@@ -1,24 +1,23 @@
-import SchemasDecorators from '../../src/core/decorators/SchemasDecorators'
-import { DBTypes } from '../../src/core/enums/DBTypes';
+import { Table, Column, PrimaryKey, DataType, ManyToOne, ManyToMany, DBTypes} from '../../src/Index';
 import { Person } from './TestEntity';
 
-@SchemasDecorators.Table("message_tb")
+@Table("message_tb")
 export class Message
 {
-    @SchemasDecorators.PrimaryKey()
-    @SchemasDecorators.Column()
-    @SchemasDecorators.DataType(DBTypes.SERIAL)
+    @PrimaryKey()
+    @Column()
+    @DataType(DBTypes.SERIAL)
     public Id : number = -1;
 
-    @SchemasDecorators.Column()
+    @Column()
     public Message : string;
 
-    @SchemasDecorators.Column()
-    @SchemasDecorators.ManyToOne(()=> Person, "MessagesWriten")
+    @Column()
+    @ManyToOne(()=> Person, "MessagesWriten")
     public From? : Person;
 
-    @SchemasDecorators.Column()  
-    @SchemasDecorators.ManyToMany(()=> Person, "MessagesReceived")  
+    @Column()  
+    @ManyToMany(()=> Person, "MessagesReceived")  
     public To? : Person[];     
 
 

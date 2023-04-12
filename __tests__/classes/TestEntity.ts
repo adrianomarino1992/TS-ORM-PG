@@ -1,49 +1,48 @@
-import SchemasDecorators from '../../src/core/decorators/SchemasDecorators'
-import { DBTypes } from '../../src/core/enums/DBTypes';
+import { Table, Column, PrimaryKey, DataType, OneToMany, OneToOne, ManyToMany, DBTypes} from '../../src/Index';
 import { Message } from './RelationEntity';
 
-@SchemasDecorators.Table("person_tb")
+@Table("person_tb")
 export class Person
 {
-    @SchemasDecorators.PrimaryKey()
-    @SchemasDecorators.Column()
-    @SchemasDecorators.DataType(DBTypes.SERIAL)
+    @PrimaryKey()
+    @Column()
+    @DataType(DBTypes.SERIAL)
     public Id : number = -1;
 
-    @SchemasDecorators.Column()
+    @Column()
     public Name : string;
 
-    @SchemasDecorators.Column("email_address")
+    @Column("email_address")
     public Email : string;
 
-    @SchemasDecorators.Column()    
+    @Column()    
     public Age : number; 
     
 
-    @SchemasDecorators.Column()
-    @SchemasDecorators.DataType(DBTypes.INTEGER)
+    @Column()
+    @DataType(DBTypes.INTEGER)
     public CEP : number; 
 
 
-    @SchemasDecorators.Column()
-    @SchemasDecorators.DataType(DBTypes.TEXTARRAY)
+    @Column()
+    @DataType(DBTypes.TEXTARRAY)
     public PhoneNumbers : string[];
 
-    @SchemasDecorators.Column()
-    @SchemasDecorators.DataType(DBTypes.INTEGERARRAY)
+    @Column()
+    @DataType(DBTypes.INTEGERARRAY)
     public Documents : number[];
 
-    @SchemasDecorators.Column()
-    @SchemasDecorators.DataType(DBTypes.DATE)
+    @Column()
+    @DataType(DBTypes.DATE)
     public Birth : Date;
 
 
-    @SchemasDecorators.Column()
-    @SchemasDecorators.OneToMany(()=> Message, "From")
+    @Column()
+    @OneToMany(()=> Message, "From")
     public MessagesWriten? : Message[];
 
-    @SchemasDecorators.Column()
-    @SchemasDecorators.OneToMany(()=> Message, "To")
+    @Column()
+    @OneToMany(()=> Message, "To")
     public MessagesReceived? : Message[];
 
   

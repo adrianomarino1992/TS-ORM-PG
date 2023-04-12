@@ -1,25 +1,31 @@
 {
   "name": "ts_orm_pg",
   "version": "1.0.0",
-  "description": "A ORM writen in typescript",
+  "description": "A ORM writen in typescript for postgres",  
   "main": "Index.js",
+  "types": "./lib/Index.d.ts",
+  "files": [
+    "./lib"
+  ],
   "scripts": {
     "test": "jest"
   },
   "keywords": [
-    "orm"
+    "orm", 
+    "postgres", 
+    "database"
   ],
   "author": "adrinao.marino1992@gmail.com",
   "license": "ISC",
   "dependencies": {
-    "@types/pg": "^8.6.6",
-    "@types/reflect-metadata": "^0.1.0",
-    "jest": "^29.5.0",
     "pg": "^8.10.0",
     "reflect-metadata": "^0.1.13"
   },
   "devDependencies": {
     "@types/jest": "^29.5.0",
+    "@types/pg": "^8.6.6",
+    "@types/reflect-metadata": "^0.1.0",
+    "jest": "^29.5.0",
     "ts-jest": "^29.1.0"
   }
 }

@@ -20,8 +20,8 @@ Finally, in the application start, we need call the method __PGDBContext.UpdateD
 ### ./entities/Person.ts
 
 ```typescript
-
-import {Table, Column, PrimaryKey, DataType, DBTypes} from 'ts_orm_pg';
+import { Table, Column, PrimaryKey, DataType, OneToMany, OneToOne, ManyToMany, DBTypes} from 'ts_orm_pg';
+import { Message } from './Message';
 
 @Table("person_tb")
 export class Person
@@ -40,12 +40,83 @@ export class Person
     @Column()    
     public Age : number; 
     
-    
-    constructor(name : string, email : string, age : number)
+
+    @Column()
+    @DataType(DBTypes.INTEGER)
+    public CEP : number; 
+
+
+    @Column()
+    @DataType(DBTypes.TEXTARRAY)
+    public PhoneNumbers : string[];
+
+    @Column()
+    @DataType(DBTypes.INTEGERARRAY)
+    public Documents : number[];
+
+    @Column()
+    @DataType(DBTypes.DATE)
+    public Birth : Date;
+
+
+    @Column()
+    @OneToMany(()=> Message, "From")
+    public MessagesWriten? : Message[];
+
+    @Column()
+    @OneToMany(()=> Message, "To")
+    public MessagesReceived? : Message[];
+
+  
+    constructor(name : string = "", email : string = "", age : number = 1)
     {
         this.Name = name;
         this.Email = email;
-        this.Age = age;       
+        this.Age = age;
+        this.CEP = -1;
+        this.PhoneNumbers = [];
+        this.Birth = new Date(1992,4,23);       
+        this.Documents = []; 
+        this.MessagesReceived = [];
+        this.MessagesWriten = [];
+       
+    }
+       
+
+}
+```
+
+### ./entities/Message.ts
+
+```typescript
+import { Table, Column, PrimaryKey, DataType, ManyToOne, ManyToMany, DBTypes} from 'ts_orm_pg';
+import { Person } from './Person';
+
+@Table("message_tb")
+export class Message
+{
+    @PrimaryKey()
+    @Column()
+    @DataType(DBTypes.SERIAL)
+    public Id : number = -1;
+
+    @Column()
+    public Message : string;
+
+    @Column()
+    @ManyToOne(()=> Person, "MessagesWriten")
+    public From? : Person;
+
+    @Column()  
+    @ManyToMany(()=> Person, "MessagesReceived")  
+    public To? : Person[];     
+
+
+    constructor(message : string, from? : Person, to? : Person[])
+    {
+        this.Message = message;
+        this.From = from;
+        this.To = to;       
     }
        
 
@@ -55,122 +126,184 @@ export class Person
 ### Context.ts
 
 ```typescript
-import {PGDBSet, PGDBContext, PGDBManager} from "ts_orm_pg";
-import { Person } from './entities/Person.ts';
+import { PGDBManager, PGDBContext, PGDBSet} from 'ts_orm_pg';
+import { Message } from './Message';
+import { Person } from './Person';
 
 
 export default class Context extends PGDBContext
 {
     public Persons : PGDBSet<Person>;
+    public Messages : PGDBSet<Message>;
 
     constructor(manager : PGDBManager)
     {
         super(manager);  
-        this.Persons = new PGDBSet(Person, manager);      
+        this.Persons = new PGDBSet(Person, this);      
+        this.Messages = new PGDBSet(Message, this);      
     }
 }
 ```
 
-### Index.ts
-
-```typescript
-import Context from './Context.ts';
-import { Person } from './entities/Person.ts';
-
-var conn = new 
-var context = new Context() 
-
-```
-
-## Dependecy injection service
-Consider this abstraction of a service and some imnplementations
-
-### ./services/SampleService.ts
-
-```typescript
-export abstract class SampleServiceAbstract
-{
-    abstract DoSomething() : void;
-}
-
-export class SampleService extends SampleServiceAbstract
-{
-    public DoSomething(): void {
-        console.log("Doing in SampleServices");
-    }
-}
-
-export class AnotherService extends SampleServiceAbstract
-{
-    public DoSomething(): void {
-        console.log("Doing another job in AnotherService");
-    }
-}
-```
-
-We can use the DI service like this
-
-### ./controllers/SampleController.ts
+### Create a instance of context and update or creare database
 
 ```typescript
 
-import { ControllerBase, HTTPVerbs as verbs, Use, Verb, Route, Action } from "web_api_base";
-import {SampleServiceAbstract } from '../services/SampleService.ts';
+var context = new Context(PGDBManager.Build("localhost", 5434, "test_db", "supervisor", "sup"));
 
-@Route("/sample")
-export default class SampleController extends ControllerBase
-{   
-    @Inject() // say to DI that this property will be inject on the instance
-    public SomeDepency : SampleServiceAbstract;
+await context.UpdateDatabaseAsync();
 
-    constructor(someDependecy : SampleServiceAbstract)
-    {
-        super();
-        this.SomeDepency = someDependecy ;        
-    }
 
-    @Verb(verbs.GET)    
-    @Action("/hello")
-    public Hello() : void
-    {
-        this.OK({message: "Hello Word!"})
-    }
-    
-}
 ```
 
-And we can register our dependecies in Application ConfigureAsync method
+### Insert entities
 
-### App.ts
+```typescript
 
-```typescript 
+let person = new Person();
+person.Name = "Adriano";
+person.Email = "adriano@test.com";
+person.Birth = new Date(1992,4,23);
+person.Documents = [123,4,5,678,9];
+person.PhoneNumbers = ['+55(12)98206-8255'];
 
-import { Application, IApplicationConfiguration, DependecyService, } from "web_api_base";
+await context.Persons.AddAsync(adriano);
 
-import { SampleService, SampleServiceAbstract } from './service/SampleService';
+```
 
 
-export default class App extends Application
+### Insert entities with relation
+In this case, all persons will be saved automatically. All persons of __Message.To__ property will have a reference to this message on property 
+__Person.MessagesReceived__ and the person of __Message.From__ will have a reference to this message on __Person.MessagesWriten__ property
+
+```typescript
+let msg = new Message(
+               "some message to my friends", 
+                new Person("Adriano", "adriano@test.com"), 
+                [
+                    new Person("Camila", "camila@test.com"), 
+                    new Person("Juliana", "juliana@test.com"), 
+                    new Person("Andre", "andre@test.com")
+
+                ]
+                );
+
+await context.Messages.AddAsync(msg);
+
+```
+
+
+### Quering entities
+
+```typescript
+
+let persons = await context.Persons
+                                     .Where(
+                                           {
+                                                Field : 'Name',                                                 
+                                                Value : 'Adriano'
+                                            })
+                                        .ToListAsync();
+
+```
+
+
+### Join
+
+```typescript
+
+let persons = await context.Persons
+                                     .Where(
+                                           {
+                                                Field : 'Name',                                                 
+                                                Value : 'Adriano'
+                                            })
+                                        .Join("MessagesReceived")
+                                        .ToListAsync();
+
+```
+This query will retrieve from database all persons with name "Adriano" and load all mensagens that this persons are in "To" list.
+
+
+### Order by
+
+```typescript
+let all = await context.Persons
+                              .OrderBy('Name')
+                              .ToListAsync();
+```
+
+### Order by descending
+
+```typescript
+let all = await context.Persons
+                              .OrderByDescending('Name')
+                              .ToListAsync();
+```
+
+
+### Limit
+
+```typescript
+let all = await context.Persons
+                              .OrderBy('Name')
+                              .Limit(10)
+                              .ToListAsync();
+```
+
+### Get first or default 
+
+```typescript
+let person : Person | undefined = await context.Persons
+                              .Where(
+                                     {
+                                        Field : 'Name',                                                 
+                                        Value : 'Adriano'
+                                     })
+                              .FirstOrDefaultAsync();
+```
+
+
+### Update person
+
+```typescript
+let person : Person | undefined = await context.Persons
+                              .Where(
+                                     {
+                                        Field : 'Name',                                                 
+                                        Value : 'Adriano'
+                                     })
+   
+                           .FirstOrDefaultAsync();
+
+if(person)
 {
-    constructor()
-    {
-        super();
-    }
-    
-    public override async ConfigureAsync(appConfig: IApplicationConfiguration): Promise<void>
-    {
-        this.UseCors();
+     person.Name = "Adriano Marino";
 
-        // everytime some class need a SampleServiceAbstract it will get a intance of SampleService
-        DependecyService.RegisterFor(SampleServiceAbstract, SampleService);     
-
-        this.UseControllers();
-
-    }  
+     await context.Persons.UpdateAsync(person);
 }
-
 ```
 
+
+
+
+### Delete
+
+```typescript
+let person : Person | undefined = await context.Persons
+                              .Where(
+                                     {
+                                        Field : 'Name',                                                 
+                                        Value : 'Adriano'
+                                     })
+   
+                           .FirstOrDefaultAsync();
+
+if(person)
+{
+     await context.Persons.DeleteAsync(person);
+}
+```
 ## Contributing
 
 Pull requests are welcome. For major changes, please open an issue first

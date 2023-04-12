@@ -83,7 +83,7 @@ describe("Context", ()=>{
                                                 Field : 'Name', 
                                                 Kind: Operation.EQUALS, 
                                                 Value : 'Adriano'
-                                            })
+                                            }).Join("MessagesReceived")
                                         .ToListAsync();
     
             let all = await context.Persons.ToListAsync();
@@ -165,6 +165,8 @@ describe("Context", ()=>{
                                                 Value : 'Adriano'
                                             })
                                         .FirstOrDefaultAsync();
+
+            
     
             expect(adriano).not.toBe(undefined);
             expect(adriano!.CEP).toBe(12312000);

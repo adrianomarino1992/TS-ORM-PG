@@ -1,6 +1,4 @@
-import PGDBContext from '../../src/implementations/PGDBContext';
-import PGDBManager from '../../src/implementations/PGDBManager';
-import PGDBSet from '../../src/implementations/PGDBSet';
+import { PGDBManager, PGDBContext, PGDBSet} from '../../src/Index';
 import { Message } from './RelationEntity';
 import { Person } from './TestEntity';
 
