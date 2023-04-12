@@ -1,7 +1,7 @@
 {
   "name": "myorm_pg",
-  "version": "1.0.1",
-  "description": "A ORM writen in typescript for postgres",  
+  "version": "1.0.2",
+  "description": "A ORM writen in typescript for postgres",
   "main": "Index.js",
   "types": "./lib/Index.d.ts",
   "files": [
@@ -11,8 +11,8 @@
     "test": "jest"
   },
   "keywords": [
-    "orm", 
-    "postgres", 
+    "orm",
+    "postgres",
     "database"
   ],
   "author": "adrinao.marino1992@gmail.com",
