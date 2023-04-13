@@ -834,13 +834,57 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
     private EvaluateStatement(pgStatement : IPGStatement)
     {
         let column = Type.GetColumnName(this._type, pgStatement.Statement.Field.toString());
-        let type = Type.GetDesingTimeTypeName(this._type, pgStatement.Statement.Field.toString());
+        let typeName = Type.GetDesingTimeTypeName(this._type, pgStatement.Statement.Field.toString());
         let operation = this.GetOperators(pgStatement.Statement.Kind);
+        let type = Type.GetDesingType(this._type, pgStatement.Statement.Field.toString());
+        let isArray = type == Array;
+        let relation = SchemasDecorators.GetRelationAttribute(this._type, pgStatement.Statement.Field.toString());
+        
+        if(!type)
+        {   
+            if(!relation)
+            {
+                throw new InvalidOperationException(`Can not determine the correct type conversion for propety ${pgStatement.Statement.Field.toString()}`);
+            }
+
+            type = relation.TypeBuilder();
+        } 
 
         if(pgStatement.Statement.Value == undefined)
             return `${column} is null`;
+        
+        if(this._context.IsMapped(type))
+        {
+            throw new InvalidOperationException(`Can not determine the correct type conversion for propety ${pgStatement.Statement.Field.toString()}`);
+        }
+        
+        if(isArray)
+        {
+            if(!typeName)
+                throw new InvalidOperationException(`Can not determine the correct type conversion for propety ${pgStatement.Statement.Field.toString()}`);
 
-        if(Type.IsNumber(Type.CastType(type!.toString())))
+            if(pgStatement.Statement.Kind == Operation.EQUALS)
+            {
+                return `${column} = ${this.CreateValueStatement(typeName as DBTypes, pgStatement.Statement.Value)}`; 
+            }
+
+            if(pgStatement.Statement.Kind == Operation.NOTEQUALS)
+            {
+                return `${column} != ${this.CreateValueStatement(typeName as DBTypes, pgStatement.Statement.Value)}`; 
+            }
+
+            if(pgStatement.Statement.Kind == Operation.SMALLER)
+            {
+                return `${column} <@ ${this.CreateValueStatement(typeName as DBTypes, pgStatement.Statement.Value)}`; 
+            }
+
+            if([Operation.STARTWITH, Operation.CONSTAINS, Operation.ENDWITH, Operation.GREATHER].includes(pgStatement.Statement.Kind))
+            {
+                return `${column} @> ${this.CreateValueStatement(typeName as DBTypes, pgStatement.Statement.Value)}`; 
+            }           
+        }
+        
+        if(Type.IsNumber(Type.CastType(typeName!.toString())))
         {
             operation[1] = "";
             operation[2] = "";            

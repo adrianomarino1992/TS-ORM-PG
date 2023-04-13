@@ -100,6 +100,35 @@ describe("Context", ()=>{
             await TruncatePersonTableAsync();              
     
         });
+
+        describe("Quering array", ()=>{
+
+            test("Selecting an entity in real database that documents contains 5", async ()=>{
+           
+                let context = await SeedAsync();
+        
+                let persons = await context.Persons
+                                            .Where(
+                                                {
+                                                    Field : 'Documents', 
+                                                    Kind: Operation.CONSTAINS, 
+                                                    Value : [5]
+                                                })
+                                            .ToListAsync();               
+                                            
+                
+                expect(persons.length).toBe(1);   
+                expect(persons[0].Name).toBe("Adriano");
+                expect(persons[0].Email).toBe("adriano@test.com");
+                expect(persons[0].Birth).toEqual(new Date(1992,4,23));
+                expect(persons[0].Documents).toEqual([123,4,5,678,9]);
+                expect(persons[0].PhoneNumbers).toEqual(['+55(12)98206-8255']);
+                
+        
+                await TruncatePersonTableAsync();              
+        
+            });
+        });
     });
 
     
