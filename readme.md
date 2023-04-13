@@ -147,7 +147,7 @@ export default class Context extends PGDBContext
 
 ```typescript
 
-var context = new Context(PGDBManager.Build("localhost", 5434, "test_db", "supervisor", "sup"));
+var context = new Context(PGDBManager.Build("localhost", 5432, "test_db", "username", "password"));
 
 await context.UpdateDatabaseAsync();
 
@@ -161,11 +161,11 @@ await context.UpdateDatabaseAsync();
 let person = new Person();
 person.Name = "Adriano";
 person.Email = "adriano@test.com";
-person.Birth = new Date(1992,4,23);
+person.Birth = new Date(1970,01,01);
 person.Documents = [123,4,5,678,9];
-person.PhoneNumbers = ['+55(12)98206-8255'];
+person.PhoneNumbers = ['+55(55)1234-5678'];
 
-await context.Persons.AddAsync(adriano);
+await context.Persons.AddAsync(person);
 
 ```
 
