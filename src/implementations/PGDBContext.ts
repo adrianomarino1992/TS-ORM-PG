@@ -63,7 +63,7 @@ export default abstract class PGDBContext implements IDBContext
         if(!await this._manager.CheckDatabase(dbName))
             await this._manager.CreateDataBase(dbName);
 
-        for(let type of this._mappedTypes)
+        for(let type of this.GetMappedTypes())
         {
             await this._manager.UpdateDatabaseForEntity(type);
         }
