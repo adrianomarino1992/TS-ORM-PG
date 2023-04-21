@@ -18,7 +18,7 @@ export default class SchemasDecorators
     {
         return function (target : Object)
         {
-            Reflect.defineMetadata(SchemasDecorators._tableAttribute, name ?? target.constructor.name.toLocaleLowerCase(), target);
+            Reflect.defineMetadata(SchemasDecorators._tableAttribute, name ?? (target as Function).name.toLocaleLowerCase(), target);
         }
     }
 

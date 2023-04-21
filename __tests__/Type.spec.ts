@@ -1,33 +1,20 @@
 import { Person } from "./classes/TestEntity";
 import Type from '../src/core/design/Type';
+import RawTypes from "./classes/RawTypes";
 
 
 describe("Tpe utils functions", ()=>{
 
 
-    test("Test get type from columns", ()=>{
+    test("should get table name from types", ()=>{
         
-        let keys = Type.GetColumnNameAndType(Person);
-
-        let table = Type.GetTableName(Person);
-
-        expect(keys).not.toBeNull();        
         
-        expect(table).toBe("person_tb");
+        let person_tb = Type.GetTableName(Person);
+        let rawTypes = Type.GetTableName(RawTypes);
+
+        expect(person_tb).toBe("person_tb");
+        expect(rawTypes).toBe("rawtypes");
         
-        expect(keys["Name"]).toEqual(["name", "String"]);
-
-        expect(keys["Age"]).toEqual(["age", "Number"]);
-
-        expect(keys["Email"]).toEqual(["email_address", "String"]);
-
-        expect(keys["CEP"]).toEqual(["cep", "integer"]);
-
-        expect(keys["PhoneNumbers"]).toEqual(["phonenumbers", "text[]"]);
-
-        expect(keys["Documents"]).toEqual(["documents", "integer[]"]);
-
-        expect(keys["Birth"]).toEqual(["birth", "date"]);
     });
 
 
