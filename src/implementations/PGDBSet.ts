@@ -758,8 +758,8 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
     async FirstOrDefaultAsync(): Promise<T | undefined> 
     {
         return this.CreatePromisse(async()=>{
-
-            let rows = await this.ToListAsync();
+            
+            let rows = await this.Limit(1).ToListAsync();
 
             if(rows && rows.length > 0)
                 return rows[0];
