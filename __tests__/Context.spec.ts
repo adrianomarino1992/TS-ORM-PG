@@ -28,7 +28,9 @@ async function SeedAsync() : Promise<Context>
     adriano.Documents = [123,4,5,678,9];
     adriano.PhoneNumbers = ['+55(12)98206-8255'];
     await context.Persons.AddAsync(adriano);
-    await context.Persons.AddAsync(new Person("Camila", "camila@test.com"));
+    let camila = new Person("Camila", "camila@test.com");
+    camila.Documents = [];
+    await context.Persons.AddAsync(camila);
     await context.Persons.AddAsync(new Person("Juliana", "juliana@test.com"));
     await context.Persons.AddAsync(new Person("Andre", "andre@test.com"));
 

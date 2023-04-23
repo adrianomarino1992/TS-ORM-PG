@@ -17,7 +17,7 @@ import { RelationType } from "../core/enums/RelationType";
 export default class PGDBSet<T extends object>  implements IDBSet<T>
 {
     
-    private _type! : {new (...args : any[]) : T};
+    private _type! : {new (...args : any[]) : T};    
     private _table! : string;
     private _maps! : ReturnType<typeof Type.GetColumnNameAndType>;
     private _manager! : PGDBManager;
@@ -29,6 +29,7 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
     
     constructor(cTor : { new(...args : any[]) : T}, context : PGDBContext)
     {
+        
         this._type = cTor;
         this._table = Type.GetTableName(cTor);
         this._maps = Type.GetColumnNameAndType(cTor);
@@ -40,11 +41,10 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
     
     public AddAsync(obj : T): Promise<T> {
 
-
         return this.CreatePromisse(async () => 
         {
 
-            let sql = `insert into ${this._table}(`;
+            let sql = `insert into "${this._table}"(`;
             let values = `values (`;
             let returnKey = '';       
             let key : {Property : string, Column : string} | undefined;
@@ -52,9 +52,6 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
 
             for(let map of this._maps)
             {
-                    if(Reflect.get(obj, map.Field) == undefined)
-                        continue;
-
                     if(SchemasDecorators.IsPrimaryKey(this._type, map.Field))
                     {
                         returnKey = `returning ${map.Column}`;
@@ -65,6 +62,9 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
                         }
                         continue;
                     }
+
+                    if(Reflect.get(obj, map.Field) == undefined)
+                    continue;
 
                     let relation = SchemasDecorators.GetRelationAttribute(this._type, map.Field);
                     let designType = Type.GetDesingType(this._type, map.Field);
@@ -86,6 +86,11 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
                     
                     values += `${this.CreateValueStatement(colType, Reflect.get(obj, map.Field))},`;
                     
+            }
+
+            if(key == undefined)
+            {
+                throw new InvalidOperationException(`The type ${this._type.name} must have a primary key field`);
             }
             
             sql = sql.substring(0, sql.length - 1) + ") ";
@@ -620,7 +625,7 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
 
         return this.CreatePromisse(async () => 
         {
-            let query = `select * from ${this._table}`;
+            let query = `select * from "${this._table}"`;
 
             for(let where of this._statements)
             {
@@ -745,6 +750,9 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
                     }
                 }
 
+                try{
+                    delete (instance as any)._orm_metadata_;
+                }catch{}
                 list.push(instance);
             }
 
