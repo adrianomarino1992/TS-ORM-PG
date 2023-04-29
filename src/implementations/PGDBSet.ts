@@ -12,6 +12,7 @@ import TypeNotSuportedException from "../core/exceptions/TypeNotSuportedExceptio
 import PGDBContext from "./PGDBContext";
 import InvalidOperationException from "../core/exceptions/InvalidOperationException";
 import { RelationType } from "../core/enums/RelationType";
+import ConstraintFailExceptionException from "../core/exceptions/ConstraintFailException";
 
 
 export default class PGDBSet<T extends object>  implements IDBSet<T>
@@ -270,13 +271,23 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
         return this.CreatePromisse(async() => 
         {
             
+            if(!obj)
+                throw new InvalidOperationException(`Cannot update a null reference object of ${this._type.name}`);
+
+
             let keys = Type.GetProperties(this._type).filter(p => SchemasDecorators.IsPrimaryKey(this._type, p));
             let wheres : IPGStatement[] = [];
 
             if(keys && keys.length > 0)
             {
+
                 keys.forEach((w, i) => 
                 {
+                    let keyValue = Reflect.get(obj, w);
+
+                    if(!keyValue)
+                        throw new ConstraintFailExceptionException(`The field ${this._type.name}.${w} is a primary key but has no value`);
+
                     wheres.push({
                         Statement : {
                             Field : w, 
@@ -800,11 +811,18 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
 
         }else if(Type.IsNumber(colType))
         {
+            if(isNaN(value))
+                throw new InvalidOperationException(`Can not cast the value "${value}" in a number`);
+
             return `${value}`.replace(',','.');
 
         }else if(Type.IsDate(colType))
-        {
+        { 
             let dt : Date = value as unknown as Date;
+
+            if(!dt)
+                throw new InvalidOperationException(`Can not cast the value: "${value}" in a valid date`);
+
             let dtStr = `'${dt.getFullYear()}-${dt.getMonth() + 1}-${dt.getDate()}'`;
                         
             if(colType == DBTypes.DATE)
