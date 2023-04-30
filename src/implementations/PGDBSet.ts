@@ -44,6 +44,11 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
 
         return this.CreatePromisse(async () => 
         {
+            if(!obj)
+                throw new InvalidOperationException(`Cannot insert a null reference object of ${this._type.name}`);
+
+            if(!this.IsCorrectType(obj))
+                throw new InvalidOperationException(`The object passed as argument is not a ${this._type.name} instance`);
 
             let sql = `insert into "${this._table}"(`;
             let values = `values (`;
@@ -270,6 +275,8 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
         
         return this.CreatePromisse(async() => 
         {
+            if(!this.IsCorrectType(obj))
+                throw new InvalidOperationException(`The object passed as argument is not a ${this._type.name} instance`);
             
             if(!obj)
                 throw new InvalidOperationException(`Cannot update a null reference object of ${this._type.name}`);
@@ -509,6 +516,11 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
     DeleteAsync(obj : T): Promise<T> {
         return this.CreatePromisse(async() => 
         {
+            if(!obj)
+                throw new InvalidOperationException(`Cannot delete a null reference object of ${this._type.name}`);
+
+            if(!this.IsCorrectType(obj))
+                throw new InvalidOperationException(`The object passed as argument is not a ${this._type.name} instance`);
             
             let keys = Type.GetProperties(this._type).filter(p => SchemasDecorators.IsPrimaryKey(this._type, p));
             let wheres : IPGStatement[] = [];
@@ -955,7 +967,10 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
         this._limit = undefined;
     }
 
-    
+    private IsCorrectType(obj : any) : boolean
+    {
+        return obj && obj.constructor && obj.constructor == this._type;
+    }
     
 }
 
