@@ -233,8 +233,7 @@ describe("Add objects with relations", ()=>{
     
                 let msgfromDB = await context.Messages
                 .Where({
-                    Field : "Id", 
-                    Kind: Operation.EQUALS, 
+                    Field : "Id",                    
                     Value : msg.Id
                 })
                 .Join('From')
@@ -250,8 +249,7 @@ describe("Add objects with relations", ()=>{
     
                 msgfromDB = await context.Messages
                 .Where({
-                    Field : "Id", 
-                    Kind: Operation.EQUALS, 
+                    Field : "Id",                      
                     Value : msg.Id
                 })
                 .Join('From')

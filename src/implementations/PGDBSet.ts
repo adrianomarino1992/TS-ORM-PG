@@ -69,8 +69,16 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
                         continue;
                     }
 
-                    if(Reflect.get(obj, map.Field) == undefined)
-                    continue;
+                    let currPropValue = Reflect.get(obj, map.Field);
+
+                    if(currPropValue == undefined || currPropValue == null)
+                    {
+                        sql += `"${map.Column}",`;            
+                    
+                        values += `null,`;
+
+                        continue;
+                    }
 
                     let relation = SchemasDecorators.GetRelationAttribute(this._type, map.Field);
                     let designType = Type.GetDesingType(this._type, map.Field);
@@ -85,10 +93,11 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
                         
                         continue;
                     }
-
+                    
+                   
                     let colType = Type.CastType(map.Type);
 
-                    sql += `${map.Column},`;            
+                    sql += `"${map.Column}",`;            
                     
                     values += `${this.CreateValueStatement(colType, Reflect.get(obj, map.Field))},`;
                     
@@ -306,7 +315,7 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
                 });
             }
 
-            let update = `update ${this._table} set`;
+            let update = `update "${this._table}" set`;
             let values = "";
 
             let key : {Property : string, Column : string} | undefined;
@@ -339,7 +348,7 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
                     continue;
                 }
 
-                values += `${map.Column} = ${this.CreateValueStatement(colType, Reflect.get(obj, map.Field))},`;
+                values += `"${map.Column}" = ${this.CreateValueStatement(colType, Reflect.get(obj, map.Field))},`;
 
             }
             
@@ -540,7 +549,7 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
                 });
             }
 
-            let del = `delete from ${this._table} `;           
+            let del = `delete from "${this._table}" `;           
            
 
             for(let where of wheres)
@@ -641,10 +650,10 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
 
         this._limit = limit >= 1 ? { Limit : limit} : undefined; 
         return this;
-    }
+    }  
   
 
-    async ToListAsync(): Promise<T[]> {
+    public async ToListAsync(): Promise<T[]> {
 
         return this.CreatePromisse(async () => 
         {
@@ -772,10 +781,7 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
 
                     }
                 }
-
-                try{
-                    delete (instance as any)._orm_metadata_;
-                }catch{}
+                              
                 list.push(instance);
             }
 
@@ -784,9 +790,9 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
             return list; 
 
         });       
-    }
+    }    
 
-    async FirstOrDefaultAsync(): Promise<T | undefined> 
+    public async FirstOrDefaultAsync(): Promise<T | undefined> 
     {
         return this.CreatePromisse(async()=>{
             
@@ -816,7 +822,10 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
    
     private CreateValueStatement(colType : DBTypes, value : any) : string
     {
-                    
+        
+        if(value == undefined || value == null)
+            return 'null';
+
         if(colType == DBTypes.TEXT)
         {
             return `$$${value}$$`;
