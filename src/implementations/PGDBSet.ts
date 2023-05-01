@@ -978,7 +978,39 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
 
     private IsCorrectType(obj : any) : boolean
     {
-        return obj && obj.constructor && obj.constructor == this._type;
+        let sameCTor = obj && obj.constructor && obj.constructor == this._type;
+
+        if(sameCTor)
+            return true;
+        
+        if(obj.prototype == this._type)
+            return true;
+        
+        if(obj.prototype && obj.prototype.constructor == this._type)
+            return true;
+        
+        let objectKeys = Object.keys(obj);
+
+        for(let map of this._maps)
+        {
+            let v = obj[map.Field];
+
+            if(v == undefined)
+            {
+                let exists = objectKeys.filter(s => s == map.Field).length > 0;
+
+                if(!exists)
+                {
+                    let allowNull = SchemasDecorators.AllowNullValue(this._type, map.Field);
+
+                    if(!allowNull)
+                        return false;
+                }
+            }
+        }
+
+        obj.__proto__ = this._type;
+        return true;
     }
     
 }
@@ -988,9 +1020,9 @@ interface IPGStatement
     StatementType : StatementType;
     Statement : 
     {
-            Field : string;
-            Kind : Operation, 
-            Value : any
+        Field : string;
+        Kind : Operation, 
+        Value : any
     }
 }
 

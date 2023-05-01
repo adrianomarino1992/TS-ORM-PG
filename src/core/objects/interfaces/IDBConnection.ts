@@ -7,6 +7,7 @@ export default interface IDBConnection
     DataBaseName : string;
     UserName : string;
     PassWord : string;    
+    IsOpen : boolean;
     Open() : Promise<void>;
     Query(query : string) : Promise<any>;
     Close() : void;

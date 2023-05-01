@@ -11,8 +11,9 @@ export default class PGDBConnection implements IDBConnection
     public DataBaseName!: string;
     public UserName!: string;
     public PassWord!: string; 
+    public IsOpen: boolean;
     private _conn! : pg.Client;
-    private _database! : string;
+    private _database! : string;    
 
     constructor(host : string, port : number, dababase : string, user : string, pass : string)
     {        
@@ -21,7 +22,8 @@ export default class PGDBConnection implements IDBConnection
         this.DataBaseName = dababase;
         this._database = dababase;
         this.UserName = user;
-        this.PassWord = pass;        
+        this.PassWord = pass;  
+        this.IsOpen = false;      
     }     
     
     public AsPostgres() : PGDBConnection
@@ -35,6 +37,9 @@ export default class PGDBConnection implements IDBConnection
 
         return new Promise<void>(async (resolve, reject) => 
         {
+            if(this.IsOpen)
+                await this.Close();
+
             this._conn = new pg.Client({
                 host : this.HostName, 
                 port : this.Port, 
@@ -48,6 +53,7 @@ export default class PGDBConnection implements IDBConnection
             try
             {
                 await this._conn.connect();
+                this.IsOpen = true;
                 resolve();
     
             }catch(err)
@@ -83,6 +89,7 @@ export default class PGDBConnection implements IDBConnection
             try
             {
                 await this._conn.end();
+                this.IsOpen = false;
                 resolve();
                 
             }catch(err)

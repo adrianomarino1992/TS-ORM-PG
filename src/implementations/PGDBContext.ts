@@ -1,4 +1,3 @@
-import Type from "../core/design/Type";
 import IDBContext from "../core/objects/interfaces/IDBContext";
 import IDBSet from "../core/objects/interfaces/IDBSet";
 import PGDBManager from "./PGDBManager";
@@ -6,7 +5,7 @@ import PGDBSet from "./PGDBSet";
 
 export default abstract class PGDBContext implements IDBContext
 {
-    protected _manager :PGDBManager;
+    protected _manager :PGDBManager;    
 
     private _mappedTypes! : {new (...args: any[]) : unknown}[];
 
@@ -14,7 +13,7 @@ export default abstract class PGDBContext implements IDBContext
     {
         this._manager = manager;       
        
-    }
+    }       
 
     public GetMappedTypes()
     {
@@ -68,6 +67,14 @@ export default abstract class PGDBContext implements IDBContext
             await this._manager.UpdateDatabaseForEntity(type);
         }
 
+    }
+
+    public async ExecuteNonQuery(query : string): Promise<void> {
+       await this._manager.ExecuteNonQuery(query);
+    }
+
+    public async ExecuteQuery(query : string): Promise<any> {
+        return await this._manager.Execute(query);
     }
     
 }

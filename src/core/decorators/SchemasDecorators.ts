@@ -13,6 +13,7 @@ export default class SchemasDecorators
     private static _dataTypeAttribute : string = "compile:schema-dataType";
     private static _primaryKeyAttribute : string = "compile:schema-primarykey";    
     private static _relationAttribute : string = "compile:schema-relationWith"; 
+    private static _notNullAttribute : string = "compile:schema-notNull"; 
     
 
     public static Table(name? : string)
@@ -52,6 +53,25 @@ export default class SchemasDecorators
             meta = OwnMetaDataContainer.Get(cTor, SchemasDecorators._columnAttribute, propertyName)?.Value;
         
         return meta;
+    }
+
+    public static NotNull()
+    {
+        return function (target : Object, propertyName : string)
+        {
+            OwnMetaDataContainer.Set(target.constructor, SchemasDecorators._notNullAttribute, propertyName, true);
+            Reflect.defineMetadata(SchemasDecorators._notNullAttribute, true, target.constructor, propertyName);
+        }
+    }    
+
+    public static AllowNullValue(cTor : Function, propertyName : string) : boolean
+    {
+        let meta =  Reflect.getMetadata(SchemasDecorators._notNullAttribute, cTor, propertyName);
+
+        if(meta == undefined)
+            meta = OwnMetaDataContainer.Get(cTor, SchemasDecorators._notNullAttribute, propertyName)?.Value ?? false;
+        
+        return !meta;
     }
 
 

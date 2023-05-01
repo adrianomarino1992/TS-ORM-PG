@@ -145,16 +145,16 @@ describe("Types and metadata", ()=>{
                         }
                     } 
 
-                    await context.UpdateDatabaseAsync();
+                     await context.UpdateDatabaseAsync();
 
                     for(let t of context.GetMappedTypes())
                     {
-                    expect(await manager.CheckTable(t)).toBeTruthy();
+                        expect(await manager.CheckTable(t)).toBeTruthy();
 
-                    for(let c of Type.GetColumnNameAndType(t))
-                    {
-                        expect(await manager.CheckColumn(t, c.Field));
-                    }
+                        for(let c of Type.GetColumnNameAndType(t))
+                        {
+                            expect(await manager.CheckColumn(t, c.Field)).toBeTruthy();
+                        }
                     
                     }
                 }, err => 
