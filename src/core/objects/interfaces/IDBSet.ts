@@ -15,14 +15,17 @@ export default interface IDBSet<T>
     Limit(limit : number) : IDBSet<T>;
     ToListAsync() : Promise<T[]>;
     FirstOrDefaultAsync() : Promise<T | undefined>;
+    CleanQueryTree() : void;
 }
 
 
 export interface IFluentQueryableObject<T, R extends IDBSet<T>>
 {
     WhereField<K extends keyof T>(field : K) : IFluentField<T, K, R>
+    WhereAsString(where : string) : R;
     AndField<K extends keyof T>(field : K) : IFluentField<T, K, R>
-    AndLoadAll<K extends keyof T>(field : K) : R;
+    OrField<K extends keyof T>(field : K) : IFluentField<T, K, R>
+    AndLoadAll<K extends keyof T>(field : K) : R;    
 }
 
 
@@ -34,4 +37,7 @@ export interface IFluentField<T, K extends keyof T, R extends IDBSet<T>>
     IsSmallerThan(value : T[K]) : R;
     IsInsideIn(value : T[K][]) : R;
     Constains(value : T[K]) : R;
+    StartsWith(value : T[K]) : R;
+    EndsWith(value : T[K]) : R;
+    IsNull() : R;    
 }

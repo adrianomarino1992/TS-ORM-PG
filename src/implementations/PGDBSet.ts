@@ -28,7 +28,8 @@ export default class PGDBSet<T extends object>  implements IDBSet<T> , IFluentQu
     private _ordering : IPGOrdenation<T>[] = [];
     private _includes: IPGIncluding<T>[] = []
     private _limit? : IPGLimiter;
-    
+    private _whereAsString? : string;
+
     constructor(cTor : { new(...args : any[]) : T}, context : PGDBContext)
     {
         
@@ -565,7 +566,7 @@ export default class PGDBSet<T extends object>  implements IDBSet<T> , IFluentQu
     }
     Where<K extends keyof T>(statement : IStatement<T, K>): IDBSet<T> {
 
-
+       
        this._statements.push(
         {
             Statement : 
@@ -652,7 +653,7 @@ export default class PGDBSet<T extends object>  implements IDBSet<T> , IFluentQu
         this._limit = limit >= 1 ? { Limit : limit} : undefined; 
         return this;
     }  
-  
+
 
     public async ToListAsync(): Promise<T[]> {
 
@@ -660,18 +661,28 @@ export default class PGDBSet<T extends object>  implements IDBSet<T> , IFluentQu
         {
             let query = `select * from "${this._table}"`;           
 
+            if(this._whereAsString != undefined && this._statements.length > 0)
+            {
+                throw new InvalidOperationException("Is not possible combine free and structured queries");
+            }
+
+            if(this._whereAsString != undefined)
+            {
+                query += ` ${this._whereAsString} `;                
+            }
+
             for(let i = 0; i < this._statements.length; i++)
             {
                 let where = this._statements[i];
 
                 if(i == 0 && where.StatementType != StatementType.WHERE)
                     throw new InvalidOperationException(`The query three must start with a WHERE statement`);
-               
+                
                 if(i > 0 && where.StatementType == StatementType.WHERE)
-                   where.StatementType = StatementType.AND;
+                where.StatementType = StatementType.AND;
 
                 query += ` ${where.StatementType} ${this.EvaluateStatement(where)} `;
-            }  
+            }              
                 
                 
             let ordenation = "";
@@ -712,8 +723,38 @@ export default class PGDBSet<T extends object>  implements IDBSet<T> , IFluentQu
                     if((!type || type === Array) && relation)
                         type = relation.TypeBuilder();
 
-                    if(!this._context.IsMapped(type!))
-                        Reflect.set(instance, map.Field, Reflect.get(row, map.Column));
+                    if(!this._context.IsMapped(type!)){
+
+                        let v = Reflect.get(row, map.Column);
+
+                        let vType = Type.CastType(map.Type);
+
+                        if(v != undefined){
+
+                            if([DBTypes.INTEGER, DBTypes.LONG, DBTypes.SERIAL].includes(vType))
+                                Reflect.set(instance, map.Field,  Number.parseInt(v));
+                            else if(DBTypes.DOUBLE == vType)
+                                Reflect.set(instance, map.Field,  Number.parseFloat(v));
+                            else if([DBTypes.DATE, DBTypes.DATETIME].includes(vType)){
+
+                                try{
+                                    v = new Date(v);
+                                }catch{}
+
+                                Reflect.set(instance, map.Field, v);
+                            }  
+                            else if(DBTypes.TEXT == vType)
+                                Reflect.set(instance, map.Field, v.toString());
+                            else 
+                                Reflect.set(instance, map.Field, v);                          
+                            
+                        }
+                        else 
+                            Reflect.set(instance, map.Field, v);
+                        
+                        
+                        
+                    }
                     else {                   
 
                         if(Reflect.get(row, map.Column) == undefined)
@@ -814,11 +855,27 @@ export default class PGDBSet<T extends object>  implements IDBSet<T> , IFluentQu
         });
     }
 
-    WhereField<U extends keyof T, R extends PGDBSet<T>>(field: U): IFluentField<T, U, R> {        
-        return new PGFluentField(this as any as R, field);
+    public WhereField<U extends keyof T, R extends PGDBSet<T>>(field: U): IFluentField<T, U, R> {        
+        return new PGFluentField(this as any as R, field, false);
     }
-    AndField<U extends keyof T, R extends PGDBSet<T>>(field: U): IFluentField<T, U, R> {        
-        return new PGFluentField(this as any as R, field);
+    public AndField<U extends keyof T, R extends PGDBSet<T>>(field: U): IFluentField<T, U, R> {        
+        return new PGFluentField(this as any as R, field, false);
+    }
+    public OrField<U extends keyof T, R extends PGDBSet<T>>(field: U): IFluentField<T, U, R> {        
+        return new PGFluentField(this as any as R, field, true);
+    }
+    
+
+    public WhereAsString<R extends PGDBSet<T>>(where : string) : R
+    {
+        if(where && !where.trim().toLocaleLowerCase().startsWith("where"))
+        {
+            where = `where ${where}`;
+        }
+
+        this._whereAsString = where;
+
+        return this as any as R;
     }
 
     AndLoadAll<U extends keyof T, R extends PGDBSet<T>>(field: U): R {   
@@ -839,6 +896,11 @@ export default class PGDBSet<T extends object>  implements IDBSet<T> , IFluentQu
                 reject(err);
             }            
         });
+    }
+
+    public CleanQueryTree(): void {
+
+        this.Reset();
     }
    
     private CreateValueStatement(colType : DBTypes, value : any) : string
@@ -952,14 +1014,14 @@ export default class PGDBSet<T extends object>  implements IDBSet<T> , IFluentQu
             }           
         }
         
-        if(Type.IsNumber(Type.CastType(typeName!.toString())))
+        if(Type.IsNumber(Type.CastType(typeName!.toString())) || Type.IsDate(Type.CastType(typeName!.toString())))
         {
             operation[1] = "";
             operation[2] = "";  
 
             if([Operation.CONSTAINS, Operation.ENDWITH, Operation.STARTWITH].filter(s => s == pgStatement.Statement.Kind).length > 0)
             {
-               throw new InvalidOperationException(`Can not execute ${pgStatement.Statement.Kind.toString().toLocaleLowerCase()} with numbers`);
+               throw new InvalidOperationException(`Can not execute ${pgStatement.Statement.Kind.toString().toLocaleLowerCase()} with numbers or dates`);
             }        
 
         }else
@@ -1001,6 +1063,7 @@ export default class PGDBSet<T extends object>  implements IDBSet<T> , IFluentQu
         this._ordering = [];
         this._includes = [];
         this._limit = undefined;
+        this._whereAsString = undefined;
     }
 
     private IsCorrectType(obj : any) : boolean

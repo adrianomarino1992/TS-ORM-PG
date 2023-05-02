@@ -7,14 +7,28 @@ export default class PGFluentField<T extends object, K extends keyof T, P extend
 {
     private _pgSet : P;
     private _field : keyof T;
+    private _isOr : boolean;
 
-    constructor(pgSet : P, field : keyof T)
+
+    constructor(pgSet : P, field : keyof T, isOr : boolean = false)
     {
         this._pgSet = pgSet;
         this._field = field;
+        this._isOr = isOr;
     }
 
-    IsGreaterThan(value: T[K]): P {
+    public IsGreaterThan(value: T[K]): P {
+
+        if(this._isOr)
+        {
+            this._pgSet.Or({
+                Field : this._field,
+                Kind : Operation.GREATHER, 
+                Value : value 
+            });
+    
+            return this._pgSet;
+        }
 
         this._pgSet.Where({
             Field : this._field,
@@ -24,7 +38,19 @@ export default class PGFluentField<T extends object, K extends keyof T, P extend
 
         return this._pgSet;
     }
-    IsEqualTo(value: T[K]): P  {
+
+
+    public IsEqualTo(value: T[K]): P  {
+
+        if(this._isOr)
+        {
+            this._pgSet.Or({
+                Field : this._field,               
+                Value : value 
+            });
+    
+            return this._pgSet;
+        }
 
         this._pgSet.Where({
             Field : this._field,            
@@ -34,7 +60,19 @@ export default class PGFluentField<T extends object, K extends keyof T, P extend
         return this._pgSet;
     }
 
-    IsNotEqualTo(value: T[K]): P {
+
+    public IsNotEqualTo(value: T[K]): P {
+
+        if(this._isOr)
+        {
+            this._pgSet.Or({
+                Field : this._field,
+                Kind : Operation.NOTEQUALS, 
+                Value : value 
+            });
+    
+            return this._pgSet;
+        }
 
         this._pgSet.Where({
             Field : this._field, 
@@ -45,7 +83,20 @@ export default class PGFluentField<T extends object, K extends keyof T, P extend
         return this._pgSet;
     }
 
-    IsSmallerThan(value: T[K]): P  {
+
+    public IsSmallerThan(value: T[K]): P  {
+
+        if(this._isOr)
+        {
+            this._pgSet.Or({
+                Field : this._field,
+                Kind : Operation.SMALLER, 
+                Value : value 
+            });
+    
+            return this._pgSet;
+        }
+
         this._pgSet.Where({
             Field : this._field,
             Kind : Operation.SMALLER, 
@@ -54,11 +105,13 @@ export default class PGFluentField<T extends object, K extends keyof T, P extend
 
         return this._pgSet;
     }
-    IsInsideIn(value: T[K][]): P  {
+
+
+    public IsInsideIn(value: T[K][]): P  {
 
        for(let i = 0; i < value.length; i++)
        {
-            if(i == 0)
+            if(i == 0 && !this._isOr)
             {
                 this._pgSet.Where({
                     Field : this._field,                 
@@ -76,7 +129,20 @@ export default class PGFluentField<T extends object, K extends keyof T, P extend
 
         return this._pgSet;
     }
-    Constains(value: T[K]): P  {
+
+
+    public Constains(value: T[K]): P  {
+
+        if(this._isOr)
+        {
+            this._pgSet.Or({
+                Field : this._field,
+                Kind : Operation.CONSTAINS, 
+                Value : value 
+            });
+    
+            return this._pgSet;
+        }
 
         this._pgSet.Where({
             Field : this._field,  
@@ -86,5 +152,71 @@ export default class PGFluentField<T extends object, K extends keyof T, P extend
 
         return this._pgSet;
     }
+
+
+    public StartsWith(value: T[K]): P  {
+
+        if(this._isOr)
+        {
+            this._pgSet.Or({
+                Field : this._field,
+                Kind : Operation.STARTWITH, 
+                Value : value 
+            });
+    
+            return this._pgSet;
+        }
+
+        this._pgSet.Where({
+            Field : this._field,  
+            Kind : Operation.STARTWITH,               
+            Value : value
+        });     
+
+        return this._pgSet;
+    }
+
+
+    public EndsWith(value: T[K]): P  {
+
+        if(this._isOr)
+        {
+            this._pgSet.Or({
+                Field : this._field,
+                Kind : Operation.ENDWITH, 
+                Value : value 
+            });
+    
+            return this._pgSet;
+        }
+
+        this._pgSet.Where({
+            Field : this._field,  
+            Kind : Operation.ENDWITH,               
+            Value : value
+        });     
+
+        return this._pgSet;
+    }
+
+    public IsNull(): P  {
+
+        if(!this._isOr)
+        {
+            this._pgSet.Where({
+                Field : this._field,                 
+                Value : undefined as unknown as T[keyof T]
+            });
+        }
+        else 
+        {
+            this._pgSet.Or({
+                Field : this._field,                 
+                Value : undefined as unknown as T[keyof T]
+            });
+        }        
+ 
+         return this._pgSet;
+     }
     
 }
