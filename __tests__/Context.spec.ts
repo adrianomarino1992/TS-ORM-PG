@@ -1,41 +1,8 @@
-import Context from './classes/TestContext';
-import PGConnection from "../src/implementations/PGDBConnection";
-import PGDBManager from "../src/implementations/PGDBManager";
+
 import { Person } from './classes/TestEntity';
 import { Operation } from '../src/core/objects/interfaces/IStatement';
-import Type from '../src/core/design/Type';
-import { CreateConnection } from './TestFunctions';
+import {TruncatePersonTableAsync, CreateContext, SeedAsync} from './TestFunctions';
 
-async function TruncatePersonTableAsync()
-{
-    let conn = CreateConnection();
-    await conn.Open();
-    await conn.ExecuteNonQuery(`truncate table ${Type.GetTableName(Person)}`);
-    await conn.Close();
-}
-
-function CreateContext() : Context
-{
-    return new Context(new PGDBManager(CreateConnection()));
-}
-
-async function SeedAsync() : Promise<Context>
-{
-    let context = CreateContext();
-
-    let adriano = new Person("Adriano", "adriano@test.com");
-    adriano.Birth = new Date(1992,4,23);
-    adriano.Documents = [123,4,5,678,9];
-    adriano.PhoneNumbers = ['+55(12)98206-8255'];
-    await context.Persons.AddAsync(adriano);
-    let camila = new Person("Camila", "camila@test.com");
-    camila.Documents = [];
-    await context.Persons.AddAsync(camila);
-    await context.Persons.AddAsync(new Person("Juliana", "juliana@test.com"));
-    await context.Persons.AddAsync(new Person("Andre", "andre@test.com"));
-
-    return context;
-}
 
 
 beforeAll(async()=>{

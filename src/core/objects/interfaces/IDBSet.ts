@@ -16,3 +16,22 @@ export default interface IDBSet<T>
     ToListAsync() : Promise<T[]>;
     FirstOrDefaultAsync() : Promise<T | undefined>;
 }
+
+
+export interface IFluentQueryableObject<T, R extends IDBSet<T>>
+{
+    WhereField<K extends keyof T>(field : K) : IFluentField<T, K, R>
+    AndField<K extends keyof T>(field : K) : IFluentField<T, K, R>
+    AndLoadAll<K extends keyof T>(field : K) : R;
+}
+
+
+export interface IFluentField<T, K extends keyof T, R extends IDBSet<T>>
+{
+    IsGreaterThan(value : T[K]) : R;
+    IsEqualTo(value : T[K]) : R;
+    IsNotEqualTo(value : T[K]) : R;
+    IsSmallerThan(value : T[K]) : R;
+    IsInsideIn(value : T[K][]) : R;
+    Constains(value : T[K]) : R;
+}

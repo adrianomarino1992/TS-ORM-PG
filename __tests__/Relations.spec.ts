@@ -1,27 +1,9 @@
-import Context from './classes/TestContext';
-import PGConnection from "../src/implementations/PGDBConnection";
-import PGDBManager from "../src/implementations/PGDBManager";
 import { Person } from './classes/TestEntity';
 import { Operation } from '../src/core/objects/interfaces/IStatement';
-import Type from '../src/core/design/Type';
-import { TryAsync ,CreateConnection } from './TestFunctions';
+import { TryAsync , TruncateTablesAsync, CreateContext } from './TestFunctions';
 import { Message } from './classes/RelationEntity';
 
 
-function CreateContext() : Context
-{
-    return new Context(new PGDBManager(CreateConnection()));
-}
-
-
-async function TruncateTablesAsync()
-{
-    let conn = CreateConnection();
-    await conn.Open();
-    await conn.ExecuteNonQuery(`truncate table ${Type.GetTableName(Person)}`);
-    await conn.ExecuteNonQuery(`truncate table ${Type.GetTableName(Message)}`);
-    await conn.Close();
-}
 
 beforeAll(async ()=> await TruncateTablesAsync());
 

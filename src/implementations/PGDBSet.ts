@@ -1,4 +1,4 @@
-import IDBSet from "../core/objects/interfaces/IDBSet";
+import IDBSet, {IFluentField, IFluentQueryableObject} from "../core/objects/interfaces/IDBSet";
 import Type from "../core/design/Type";
 import { DBTypes } from "../core/enums/DBTypes";
 
@@ -13,9 +13,10 @@ import PGDBContext from "./PGDBContext";
 import InvalidOperationException from "../core/exceptions/InvalidOperationException";
 import { RelationType } from "../core/enums/RelationType";
 import ConstraintFailExceptionException from "../core/exceptions/ConstraintFailException";
+import PGFluentField from "./PGFluentField";
 
 
-export default class PGDBSet<T extends object>  implements IDBSet<T>
+export default class PGDBSet<T extends object>  implements IDBSet<T> , IFluentQueryableObject<T, PGDBSet<T>>
 {
     
     private _type! : {new (...args : any[]) : T};    
@@ -37,7 +38,7 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
         this._manager = context["_manager"];
         this._context = context;
     }
-    
+       
 
     
     public AddAsync(obj : T): Promise<T> {
@@ -610,7 +611,7 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
 
         return this;
     }
-
+    
     OrderBy<K extends keyof T>(key : K): IDBSet<T> {
        
         this._ordering.push(
@@ -657,10 +658,18 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
 
         return this.CreatePromisse(async () => 
         {
-            let query = `select * from "${this._table}"`;
+            let query = `select * from "${this._table}"`;           
 
-            for(let where of this._statements)
+            for(let i = 0; i < this._statements.length; i++)
             {
+                let where = this._statements[i];
+
+                if(i == 0 && where.StatementType != StatementType.WHERE)
+                    throw new InvalidOperationException(`The query three must start with a WHERE statement`);
+               
+                if(i > 0 && where.StatementType == StatementType.WHERE)
+                   where.StatementType = StatementType.AND;
+
                 query += ` ${where.StatementType} ${this.EvaluateStatement(where)} `;
             }  
                 
@@ -805,6 +814,18 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
         });
     }
 
+    WhereField<U extends keyof T, R extends PGDBSet<T>>(field: U): IFluentField<T, U, R> {        
+        return new PGFluentField(this as any as R, field);
+    }
+    AndField<U extends keyof T, R extends PGDBSet<T>>(field: U): IFluentField<T, U, R> {        
+        return new PGFluentField(this as any as R, field);
+    }
+
+    AndLoadAll<U extends keyof T, R extends PGDBSet<T>>(field: U): R {   
+
+        return this.Join(field) as any as R;        
+    }
+
     private CreatePromisse<T>(func : ()=> Promise<T>) : Promise<T>
     {
         return new Promise<T>(async (resolve, reject)=>{
@@ -934,7 +955,13 @@ export default class PGDBSet<T extends object>  implements IDBSet<T>
         if(Type.IsNumber(Type.CastType(typeName!.toString())))
         {
             operation[1] = "";
-            operation[2] = "";            
+            operation[2] = "";  
+
+            if([Operation.CONSTAINS, Operation.ENDWITH, Operation.STARTWITH].filter(s => s == pgStatement.Statement.Kind).length > 0)
+            {
+               throw new InvalidOperationException(`Can not execute ${pgStatement.Statement.Kind.toString().toLocaleLowerCase()} with numbers`);
+            }        
+
         }else
         {
 
