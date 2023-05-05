@@ -19,6 +19,15 @@ export default class PGDBManager implements IDBManager
     {
         this._connection = connection;
     }
+
+    public async CheckConnection(): Promise<boolean> {
+        
+        try{
+            await this._connection.Open();
+            return true;
+        }catch{ return false;}
+        finally{await this._connection.Close();}
+    }
     
     public CheckDatabase(dababase: string): Promise<boolean> {
        

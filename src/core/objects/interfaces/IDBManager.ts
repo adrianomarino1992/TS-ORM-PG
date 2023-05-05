@@ -3,6 +3,8 @@
 
 export default interface IDBManager 
 {
+    CheckConnection() : Promise<boolean>;
+
     CheckDatabase(dababase : string) : Promise<boolean>;
     
     CreateDataBase(dababase : string) : Promise<void>;
