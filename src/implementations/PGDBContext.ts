@@ -11,34 +11,9 @@ export default abstract class PGDBContext implements IDBContext
 
     private _mappedTypes! : {new (...args: any[]) : unknown}[];
 
-    constructor(manager? : PGDBManager)
+    constructor(manager : PGDBManager)
     {
-        let host = process.env.DB_HOST || "";
-        let port = process.env.DB_PORT || "0";
-        let username = process.env.DB_USER || "";
-        let password = process.env.DB_PASS || "";
-        let database = process.env.DB_NAME || "";
-        let intPort = 0;
-        try{
-            intPort = Number.parseInt(port);
-        }catch{}
-        
-        if(!host && !manager)
-            throw new InvalidOperationException(`DB_HOST enviroment variable was no value and no one PGDBManager instance was suplied`);
-
-        if((!port || Number.isNaN(intPort)) && !manager)
-            throw new InvalidOperationException(`DB_PORT enviroment variable was no value and no one PGDBManager instance was suplied`);
-
-        if(!username && !manager)
-            throw new InvalidOperationException(`DB_USER enviroment variable was no value and no one PGDBManager instance was suplied`);
-
-        if(!password && !manager)
-            throw new InvalidOperationException(`DB_PASS enviroment variable was no value and no one PGDBManager instance was suplied`);
-            
-        if(!database && !manager)
-            throw new InvalidOperationException(`DB_NAME enviroment variable was no value and no one PGDBManager instance was suplied`);   
-
-        this._manager = manager ?? PGDBManager.Build(host, intPort, database, username, password);  
+        this._manager = manager;  
     }       
 
     

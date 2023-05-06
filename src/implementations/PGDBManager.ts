@@ -22,11 +22,20 @@ export default class PGDBManager implements IDBManager
 
     public async CheckConnection(): Promise<boolean> {
         
-        try{
+        try
+        {
             await this._connection.Open();
             return true;
-        }catch{ return false;}
-        finally{await this._connection.Close();}
+
+        }
+        catch
+        { 
+            return false;
+        }
+        finally
+        {
+            await this._connection.Close();
+        }
     }
     
     public CheckDatabase(dababase: string): Promise<boolean> {
@@ -203,6 +212,36 @@ export default class PGDBManager implements IDBManager
     public static Build(host : string, port : number, dababase : string, user : string, pass : string) : PGDBManager
     {
         return new PGDBManager(new PGDBConnection(host, port, dababase, user, pass));
+    }
+
+    public static BuildFromEnviroment()
+    {
+        let host = process.env.DB_HOST || "";
+        let port = process.env.DB_PORT || "0";
+        let username = process.env.DB_USER || "";
+        let password = process.env.DB_PASS || "";
+        let database = process.env.DB_NAME || "";
+        let intPort = 0;
+        try{
+            intPort = Number.parseInt(port);
+        }catch{}
+        
+        if(!host)
+            throw new InvalidOperationException(`DB_HOST enviroment variable was no value`);
+
+        if(!port || Number.isNaN(intPort))
+            throw new InvalidOperationException(`DB_PORT enviroment variable was no value`);
+
+        if(!username)
+            throw new InvalidOperationException(`DB_USER enviroment variable was no value`);
+
+        if(!password)
+            throw new InvalidOperationException(`DB_PASS enviroment variable was no value`);
+            
+        if(!database)
+            throw new InvalidOperationException(`DB_NAME enviroment variable was no value`);
+
+        return PGDBManager.Build(host, intPort, database, username, password)
     }
     
     private CreatePromisse<T>(func : ()=> Promise<T>) : Promise<T>

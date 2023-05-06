@@ -8,7 +8,7 @@ export default class Context extends PGDBContext
     public Persons : PGDBSet<Person>;
     public Messages : PGDBSet<Message>;
 
-    constructor(manager? : PGDBManager)
+    constructor(manager : PGDBManager)
     {
         super(manager);  
         this.Persons = new PGDBSet(Person, this);      

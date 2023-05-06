@@ -11,8 +11,375 @@ npm install myorm_pg
 ```
 
 
-## Usage
+# Usage
 This ORM is based on https://www.nuget.org/packages/Adr.MyORMForPostgreSQL for .NET. The usage is similar.
+
+
+### Context.ts
+
+```typescript
+import { PGDBManager, PGDBContext, PGDBSet} from 'myorm_pg';
+import { Message } from './entities/Message'; 
+import { Person } from './entities/Person';
+
+
+export default class Context extends PGDBContext
+{
+    public Persons : PGDBSet<Person>;
+    public Messages : PGDBSet<Message>;
+
+    constructor(manager : PGDBManager)
+    {
+        super(manager);  
+        this.Persons = new PGDBSet(Person, this);      
+        this.Messages = new PGDBSet(Message, this);      
+    }
+}
+```
+
+# Create a instance of context and update or creare database
+### Create with explicts parameters
+ 
+```typescript
+
+var context = new Context(PGDBManager.Build("localhost", 5432, "test_db", "username", "password"));
+
+await context.UpdateDatabaseAsync();
+
+```
+
+### Create with enviroment variables 
+
+this method will try get values from __process.env__ keys. The ORM will search for __DB_HOST__, __DB_PORT__, __DB_NAME__, __DB_USER__ and __DB_PASS__
+
+ 
+ 
+```typescript
+
+var context = new Context(PGDBManager.BuildFromEnviroment());
+
+await context.UpdateDatabaseAsync();
+
+
+```
+
+
+
+## Insert entities
+
+```typescript
+
+let person = new Person();
+person.Name = "Adriano";
+person.Email = "adriano@test.com";
+person.Birth = new Date(1970,01,01);
+person.Documents = [123,4,5,678,9];
+person.PhoneNumbers = ['+55(55)1234-5678'];
+
+await context.Persons.AddAsync(person);
+
+```
+
+
+## Insert entities with relation
+In this case, all persons will be saved automatically. All persons of __Message.To__ property will have a reference to this message on property 
+__Person.MessagesReceived__ and the person of __Message.From__ will have a reference to this message on __Person.MessagesWriten__ property
+
+```typescript
+let msg = new Message("some message to my friends", 
+                new Person("Adriano", "adriano@test.com"), 
+                [
+                    new Person("Camila", "camila@test.com"), 
+                    new Person("Juliana", "juliana@test.com"), 
+                    new Person("Andre", "andre@test.com")
+                ]);
+
+await context.Messages.AddAsync(msg);
+
+```
+
+# where
+
+
+```typescript
+
+let persons = await context.Persons.Where({
+                                          Field : 'Name',
+                                          Value : 'Adriano'
+                                         })
+                                   .ToListAsync();
+
+```
+
+# And
+
+
+```typescript
+
+let persons = await context.Persons.Where({
+                                          Field : 'Name',
+                                          Value : 'Adriano'
+                                         })
+                                    .And({
+                                          Field : 'Email',
+                                          Value : 'adriano@test.com'
+                                         })
+                                   .ToListAsync();
+
+```
+
+
+# Or
+
+
+```typescript
+
+let persons = await context.Persons.Where({
+                                          Field : 'Name',
+                                          Value : 'Adriano'
+                                         })
+                                    .Or({
+                                          Field : 'Email',
+                                          Value : 'adriano@test.com'
+                                         })
+                                   .ToListAsync();
+
+```
+
+
+# Operations
+
+### Equals
+
+```typescript
+
+let persons = await context.Persons.Where({
+                                          Field : 'Name',
+                                          Value : 'Adriano'
+                                         })
+                                   .ToListAsync();
+
+```
+
+
+### Not equals
+
+```typescript
+
+let persons = await context.Persons.Where({
+                                          Field : 'Name',
+                                          Kind : Operation.NOTEQUALS,
+                                          Value : 'Adriano'
+                                         })
+                                   .ToListAsync();
+
+```
+
+### Contains
+
+```typescript
+
+let persons = await context.Persons.Where({
+                                          Field : 'Email',
+                                          Kind : Operation.CONTAINS,
+                                          Value : 'test@.com'
+                                         })
+                                   .ToListAsync();
+```
+
+
+### Starts with
+
+```typescript
+
+let persons = await context.Persons.Where({
+                                          Field : 'Name',
+                                          Kind : Operation.STARTWITH,
+                                          Value : 'Adriano'
+                                         })
+                                   .ToListAsync();
+```
+
+
+### Ends with
+
+```typescript
+
+let persons = await context.Persons.Where({
+                                          Field : 'Name',
+                                          Kind : Operation.ENDWITH,
+                                          Value : 'Adriano'
+                                         })
+                                   .ToListAsync();
+```
+
+### Greater 
+
+```typescript
+
+let persons = await context.Persons.Where({
+                                          Field : 'Age',
+                                          Kind : Operation.GREATER,
+                                          Value : 30
+                                         })
+                                   .ToListAsync();
+```
+
+### Smaller
+
+```typescript
+
+let persons = await context.Persons.Where({
+                                          Field : 'Name',
+                                          Kind : Operation.SMALLER,
+                                          Value : 'Adriano'
+                                         })
+                                   .ToListAsync();
+
+```
+
+# Join
+
+```typescript
+
+let persons = await context.Persons.Where({
+                                           Field : 'Name',
+                                           Value : 'Adriano'
+                                           })
+                                   .Join("MessagesReceived")
+                                   .ToListAsync(); 
+
+```
+This query will retrieve from database all persons with name "Adriano" and load all mensagens that this persons are in "To" list.
+
+
+## Order by
+
+```typescript
+let all = await context.Persons
+                       .OrderBy('Name')
+                       .ToListAsync();
+```
+
+## Order by descending
+
+```typescript
+let all = await context.Persons
+                              .OrderByDescending('Name')
+                              .ToListAsync();
+```
+
+
+## Limit
+
+```typescript
+let all = await context.Persons
+                              .OrderBy('Name')
+                              .Limit(10)
+                              .ToListAsync();
+```
+
+## Get first or default 
+
+```typescript
+let person  = await context.Persons.Where({
+                                        Field : 'Name',                                                 
+                                        Value : 'Adriano'
+                                         })
+                                  .FirstOrDefaultAsync();
+```
+
+
+## Update person
+
+```typescript
+let person = await context.Persons.Where({
+                                         Field : 'Name',                                                 
+                                         Value : 'Adriano'
+                                        })   
+                                  .FirstOrDefaultAsync();
+
+person.Name = "Adriano Marino";
+await context.Persons.UpdateAsync(person);
+
+```
+
+
+
+
+## Delete
+
+```typescript
+let person = await context.Persons.Where({
+                                         Field : 'Name',                                                 
+                                         Value : 'Adriano'
+                                        }).FirstOrDefaultAsync();
+
+await context.Persons.DeleteAsync(person);
+```
+
+
+# Fluent query methods
+
+## Where
+
+```typescript 
+let persons= await context.Persons.WhereField("Name").Constains("Adriano")
+                                  .AndLoadAll("MessagesReceived")
+                                  .ToListAsync();
+```
+
+## And and Or
+
+```typescript 
+ let persons = await context.Persons.WhereField("Name").Constains("Adriano")
+                                    .AndField("Age").IsGreaterThan(30)
+                                    .OrField("Email").Constains("@test.com")
+                                    .AndLoadAll("MessagesReceived")
+                                    .ToListAsync();
+```
+
+## IsInsideIn
+
+```typescript 
+ let persons = await context.Persons.WhereField("Age").IsInsideIn([1,30, 12, 40, 120]).ToListAsync();
+```
+
+### This is equilalent to : 
+
+```typescript 
+let persons  = await context.Persons.Where({Field : 'Age', Value : 1})
+                                    .Or({Field : 'Age', Value : 30})
+                                    .Or({Field : "Age" , Value : 12})
+                                    .Or({Field : "Age" , Value : 40})
+                                    .Or({Field : "Age" , Value : 120})
+                                    .ToListAsync();
+```
+
+## Get null
+
+```typescript
+let persons = await context.Persons.WhereField("MessagesReceived").IsNull().ToListAsync();      
+```  
+
+# Free hand query
+
+```typescript
+ let persons = await context.Persons.WhereAsString(`age > 30 or name ilike '%adriano%'`).ToListAsync();
+
+```
+
+
+# Method to run queries with connection manager system
+
+```typescript
+ let pg_result = await context.ExecuteQuery("select now()");
+
+```
+
+
+# Entities used in this example
+
 
 ### ./entities/Person.ts
 
@@ -121,187 +488,6 @@ export class Message
 }
 ```
 
-### Context.ts
-
-```typescript
-import { PGDBManager, PGDBContext, PGDBSet} from 'myorm_pg';
-import { Message } from './entities/Message';
-import { Person } from './entities/Person';
-
-
-export default class Context extends PGDBContext
-{
-    public Persons : PGDBSet<Person>;
-    public Messages : PGDBSet<Message>;
-
-    constructor(manager : PGDBManager)
-    {
-        super(manager);  
-        this.Persons = new PGDBSet(Person, this);      
-        this.Messages = new PGDBSet(Message, this);      
-    }
-}
-```
-
-### Create a instance of context and update or creare database
-
-```typescript
-
-var context = new Context(PGDBManager.Build("localhost", 5432, "test_db", "username", "password"));
-
-await context.UpdateDatabaseAsync();
-
-
-```
-
-### Insert entities
-
-```typescript
-
-let person = new Person();
-person.Name = "Adriano";
-person.Email = "adriano@test.com";
-person.Birth = new Date(1970,01,01);
-person.Documents = [123,4,5,678,9];
-person.PhoneNumbers = ['+55(55)1234-5678'];
-
-await context.Persons.AddAsync(person);
-
-```
-
-
-### Insert entities with relation
-In this case, all persons will be saved automatically. All persons of __Message.To__ property will have a reference to this message on property 
-__Person.MessagesReceived__ and the person of __Message.From__ will have a reference to this message on __Person.MessagesWriten__ property
-
-```typescript
-let msg = new Message(
-               "some message to my friends", 
-                new Person("Adriano", "adriano@test.com"), 
-                [
-                    new Person("Camila", "camila@test.com"), 
-                    new Person("Juliana", "juliana@test.com"), 
-                    new Person("Andre", "andre@test.com")
-
-                ]
-                );
-
-await context.Messages.AddAsync(msg);
-
-```
-
-
-### Quering entities
-
-```typescript
-
-let persons = await context.Persons
-                                     .Where(
-                                           {
-                                                Field : 'Name',                                                 
-                                                Value : 'Adriano'
-                                            })
-                                        .ToListAsync();
-
-```
-
-
-### Join
-
-```typescript
-
-let persons = await context.Persons
-                                     .Where(
-                                           {
-                                                Field : 'Name',                                                 
-                                                Value : 'Adriano'
-                                            })
-                                        .Join("MessagesReceived")
-                                        .ToListAsync();
-
-```
-This query will retrieve from database all persons with name "Adriano" and load all mensagens that this persons are in "To" list.
-
-
-### Order by
-
-```typescript
-let all = await context.Persons
-                              .OrderBy('Name')
-                              .ToListAsync();
-```
-
-### Order by descending
-
-```typescript
-let all = await context.Persons
-                              .OrderByDescending('Name')
-                              .ToListAsync();
-```
-
-
-### Limit
-
-```typescript
-let all = await context.Persons
-                              .OrderBy('Name')
-                              .Limit(10)
-                              .ToListAsync();
-```
-
-### Get first or default 
-
-```typescript
-let person : Person | undefined = await context.Persons
-                              .Where(
-                                     {
-                                        Field : 'Name',                                                 
-                                        Value : 'Adriano'
-                                     })
-                              .FirstOrDefaultAsync();
-```
-
-
-### Update person
-
-```typescript
-let person : Person | undefined = await context.Persons
-                              .Where(
-                                     {
-                                        Field : 'Name',                                                 
-                                        Value : 'Adriano'
-                                     })
-   
-                           .FirstOrDefaultAsync();
-
-if(person)
-{
-     person.Name = "Adriano Marino";
-
-     await context.Persons.UpdateAsync(person);
-}
-```
-
-
-
-
-### Delete
-
-```typescript
-let person : Person | undefined = await context.Persons
-                              .Where(
-                                     {
-                                        Field : 'Name',                                                 
-                                        Value : 'Adriano'
-                                     })
-   
-                           .FirstOrDefaultAsync();
-
-if(person)
-{
-     await context.Persons.DeleteAsync(person);
-}
-```
 ## Contributing
 
 Pull requests are welcome. For major changes, please open an issue first

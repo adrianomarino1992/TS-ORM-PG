@@ -1,3 +1,4 @@
+import { PGDBManager } from "../src/Index";
 import ConnectionFailException from "../src/core/exceptions/ConnectionFailException";
 import InvalidOperationException from "../src/core/exceptions/InvalidOperationException";
 import PGConnection from "../src/implementations/PGDBConnection";
@@ -28,7 +29,7 @@ describe("Connection", ()=>{
       process.env.DB_PASS = "sup";
       process.env.DB_NAME = "postgres";
 
-      let context = new Context();
+      let context = new Context(PGDBManager.BuildFromEnviroment());
 
       let now = await context.ExecuteQuery("select now()");
 
@@ -48,7 +49,7 @@ describe("Connection", ()=>{
 
             try
             {
-                let context = new Context();  
+                let context = new Context(PGDBManager.BuildFromEnviroment());  
 
                 throw new Error("Shouyld have failed");
 
