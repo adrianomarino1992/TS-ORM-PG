@@ -55,7 +55,8 @@ describe("Query", ()=>{
         expect(array[0].Email).toBe("adriano@test.com");
         expect(array[0].Birth).toEqual(new Date(1992,4,23));
         expect(array[0].Documents).toEqual([123,4,5,678,9]);
-        expect(array[0].PhoneNumbers).toEqual(['+55(12)98206-8255']);       
+        expect(array[0].PhoneNumbers).toEqual(['+55(12)98206-8255']);           
+        
 
         await TruncatePersonTableAsync();              
 

@@ -12,11 +12,12 @@ import TypeNotSuportedException from "../core/exceptions/TypeNotSuportedExceptio
 import PGDBContext from "./PGDBContext";
 import InvalidOperationException from "../core/exceptions/InvalidOperationException";
 import { RelationType } from "../core/enums/RelationType";
-import ConstraintFailExceptionException from "../core/exceptions/ConstraintFailException";
+import ConstraintFailException from "../core/exceptions/ConstraintFailException";
 import PGFluentField from "./PGFluentField";
+import PGSetHelper from "./PGSetHelper";
 
 
-export default class PGDBSet<T extends object>  implements IDBSet<T> , IFluentQueryableObject<T, PGDBSet<T>>
+export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQueryableObject<T, PGDBSet<T>>
 {
     
     private _type! : {new (...args : any[]) : T};    
@@ -207,7 +208,7 @@ export default class PGDBSet<T extends object>  implements IDBSet<T> , IFluentQu
                     }
                 }
 
-                let colletion = this._context.Collection(subType)!;
+                let colletion = this._context.Collection(subType as {new (...args: any[]) : Object})!;
                 
                 if(isArray)
                 {
@@ -304,7 +305,7 @@ export default class PGDBSet<T extends object>  implements IDBSet<T> , IFluentQu
                     let keyValue = Reflect.get(obj, w);
 
                     if(!keyValue)
-                        throw new ConstraintFailExceptionException(`The field ${this._type.name}.${w} is a primary key but has no value`);
+                        throw new ConstraintFailException(`The field ${this._type.name}.${w} is a primary key but has no value`);
 
                     wheres.push({
                         Statement : {
@@ -454,7 +455,7 @@ export default class PGDBSet<T extends object>  implements IDBSet<T> , IFluentQu
                 }
 
 
-                let colletion = this._context.Collection(subType)!;
+                let colletion = this._context.Collection(subType as {new (...args: any[]) : Object})!;
                 
                 if(isArray)
                 {
@@ -653,13 +654,20 @@ export default class PGDBSet<T extends object>  implements IDBSet<T> , IFluentQu
         this._limit = limit >= 1 ? { Limit : limit} : undefined; 
         return this;
     }  
-
-
+   
     public async ToListAsync(): Promise<T[]> {
 
         return this.CreatePromisse(async () => 
         {
-            let query = `select * from "${this._table}"`;           
+            let joinSrt = PGSetHelper.ExtractJoinData(this);
+            let onSrt = PGSetHelper.ExtractOnData(this);
+            let whereSrt = PGSetHelper.ExtractWhereData(this);
+            let sqlSrt = PGSetHelper.ExtractSQLData(this);
+
+            let query = `select "${this._table}".* from "${this._table}"`;  
+            
+            if(joinSrt)
+                query = joinSrt;
 
             if(this._whereAsString != undefined && this._statements.length > 0)
             {
@@ -671,19 +679,12 @@ export default class PGDBSet<T extends object>  implements IDBSet<T> , IFluentQu
                 query += ` ${this._whereAsString} `;                
             }
 
-            for(let i = 0; i < this._statements.length; i++)
-            {
-                let where = this._statements[i];
-
-                if(i == 0 && where.StatementType != StatementType.WHERE)
-                    throw new InvalidOperationException(`The query three must start with a WHERE statement`);
+            query += this.EvaluateWhere();
                 
-                if(i > 0 && where.StatementType == StatementType.WHERE)
-                where.StatementType = StatementType.AND;
+            query += whereSrt;
 
-                query += ` ${where.StatementType} ${this.EvaluateStatement(where)} `;
-            }              
-                
+            if(sqlSrt && sqlSrt.toLowerCase().trim().startsWith(`select "${this._table}".*`))
+                query = sqlSrt;
                 
             let ordenation = "";
 
@@ -712,128 +713,7 @@ export default class PGDBSet<T extends object>  implements IDBSet<T> , IFluentQu
 
             let list : T[] = [];
 
-            for(let row of r.rows)
-            {
-                let instance = Reflect.construct(this._type, []) as T;
-
-                for(let map of this._maps)
-                {
-                    let type = Type.GetDesingType(this._type, map.Field);
-                    let relation = SchemasDecorators.GetRelationAttribute(this._type, map.Field);
-                    if((!type || type === Array) && relation)
-                        type = relation.TypeBuilder();
-
-                    if(!this._context.IsMapped(type!)){
-
-                        let v = Reflect.get(row, map.Column);
-
-                        let vType = Type.CastType(map.Type);
-
-                        if(v != undefined){
-
-                            if([DBTypes.INTEGER, DBTypes.LONG, DBTypes.SERIAL].includes(vType))
-                                Reflect.set(instance, map.Field,  Number.parseInt(v));
-                            else if(DBTypes.DOUBLE == vType)
-                                Reflect.set(instance, map.Field,  Number.parseFloat(v));
-                            else if([DBTypes.DATE, DBTypes.DATETIME].includes(vType)){
-
-                                try{
-                                    v = new Date(v);
-                                }catch{}
-
-                                Reflect.set(instance, map.Field, v);
-                            }  
-                            else if(DBTypes.TEXT == vType)
-                                Reflect.set(instance, map.Field, v.toString());
-                            else 
-                                Reflect.set(instance, map.Field, v);                          
-                            
-                        }
-                        else 
-                            Reflect.set(instance, map.Field, v);
-                        
-                        
-                        
-                    }
-                    else {                   
-
-                        if(Reflect.get(row, map.Column) == undefined)
-                            continue;
-
-                        let includeType = this._includes.filter(s => s.Field == map.Field);
-
-                        let loaded : boolean = false;
-
-                        if(includeType.length > 0)
-                        {
-                            loaded = true;
-                            
-                            let colletion = this._context.Collection(type!)!;
-
-                            if(colletion == undefined)
-                                continue;
-
-                            let subKey = SchemasDecorators.ExtractPrimaryKey(type!)!;
-
-                            if(relation?.Relation == RelationType.MANY_TO_MANY || relation?.Relation == RelationType.ONE_TO_MANY)
-                            {
-                                let values = Reflect.get(row, map.Column);
-
-                                if(!values || values.length == 0)
-                                    continue;
-
-                                colletion.Where({
-                                    Field : subKey as keyof typeof type, 
-                                    Kind : Operation.EQUALS, 
-                                    Value : values[0] as typeof type[keyof typeof type & string]
-                                });
-
-                                for(let i = 0; i < values.length; i++)
-                                {
-                                    if(i == 0)
-                                        continue;
-
-                                    colletion.Or({
-                                        Field : subKey as keyof typeof type, 
-                                        Kind : Operation.EQUALS, 
-                                        Value : values[i] as typeof type[keyof typeof type & string]
-                                    });
-                                }
-
-                                let subObjets = await colletion.ToListAsync();
-                                Reflect.set(instance, map.Field, subObjets);
-
-                            }else{
-
-                                colletion.Where({
-                                    Field : subKey as keyof typeof type, 
-                                    Kind : Operation.EQUALS, 
-                                    Value : Reflect.get(row, map.Column) as typeof type[keyof typeof type & string]
-                                });
-
-                                let subObjet = await colletion.FirstOrDefaultAsync();
-                                Reflect.set(instance, map.Field, subObjet);
-
-                            }
-
-                            
-                        }
-
-                        Type.InjectMetadata(
-                            instance, 
-                            {
-                                Field: map.Field, 
-                                Type: map.Type as DBTypes,
-                                Value : Reflect.get(row, map.Column), 
-                                Loaded : loaded                                
-                            }
-                        );
-
-                    }
-                }
-                              
-                list.push(instance);
-            }
+            list = await this.BuildObjects(r);
 
             this.Reset();
 
@@ -961,6 +841,24 @@ export default class PGDBSet<T extends object>  implements IDBSet<T> , IFluentQu
         throw new TypeNotSuportedException(`The type ${colType} is not suported`);
     }
 
+    private EvaluateWhere()
+    {
+        let query = "";
+        for(let i = 0; i < this._statements.length; i++)
+        {
+            let where = this._statements[i];
+
+            if(i == 0 && where.StatementType != StatementType.WHERE)
+                throw new InvalidOperationException(`The query three must start with a WHERE statement`);
+                
+            if(i > 0 && where.StatementType == StatementType.WHERE)
+            where.StatementType = StatementType.AND;
+
+            query += ` ${where.StatementType} ${this.EvaluateStatement(where)} `;
+        }  
+        return query;   
+    }
+
     private EvaluateStatement(pgStatement : IPGStatement)
     {
         let column = Type.GetColumnName(this._type, pgStatement.Statement.Field.toString());
@@ -981,7 +879,7 @@ export default class PGDBSet<T extends object>  implements IDBSet<T> , IFluentQu
         } 
 
         if(pgStatement.Statement.Value == undefined)
-            return `${column} is null`;
+            return `"${this._table}".${column} is null`;
         
         if(this._context.IsMapped(type))
         {
@@ -995,22 +893,22 @@ export default class PGDBSet<T extends object>  implements IDBSet<T> , IFluentQu
 
             if(pgStatement.Statement.Kind == Operation.EQUALS)
             {
-                return `${column} = ${this.CreateValueStatement(typeName as DBTypes, pgStatement.Statement.Value)}`; 
+                return `"${this._table}".${column} = ${this.CreateValueStatement(typeName as DBTypes, pgStatement.Statement.Value)}`; 
             }
 
             if(pgStatement.Statement.Kind == Operation.NOTEQUALS)
             {
-                return `${column} != ${this.CreateValueStatement(typeName as DBTypes, pgStatement.Statement.Value)}`; 
+                return `"${this._table}".${column} != ${this.CreateValueStatement(typeName as DBTypes, pgStatement.Statement.Value)}`; 
             }
 
             if(pgStatement.Statement.Kind == Operation.SMALLER)
             {
-                return `${column} <@ ${this.CreateValueStatement(typeName as DBTypes, pgStatement.Statement.Value)}`; 
+                return `"${this._table}".${column} <@ ${this.CreateValueStatement(typeName as DBTypes, pgStatement.Statement.Value)}`; 
             }
 
             if([Operation.STARTWITH, Operation.CONSTAINS, Operation.ENDWITH, Operation.GREATHER].includes(pgStatement.Statement.Kind))
             {
-                return `${column} @> ${this.CreateValueStatement(typeName as DBTypes, pgStatement.Statement.Value)}`; 
+                return `"${this._table}".${column} @> ${this.CreateValueStatement(typeName as DBTypes, pgStatement.Statement.Value)}`; 
             }           
         }
         
@@ -1031,14 +929,14 @@ export default class PGDBSet<T extends object>  implements IDBSet<T> , IFluentQu
             operation[2] = `${operation[2]}$$`;
         }
 
-        return `${column} ${operation[0]} ${operation[1]}${pgStatement.Statement.Value}${operation[2]}`;
+        return `"${this._table}".${column} ${operation[0]} ${operation[1]}${pgStatement.Statement.Value}${operation[2]}`;
     }
 
     private EvaluateOrderBy(ordering : IPGOrdenation<T>)
     {
         let column = Type.GetColumnName(this._type, ordering.Field.toString());
         
-        return ` ${column} ${ordering.Order}`;
+        return ` "${this._table}".${column} ${ordering.Order}`;
     }
 
 
@@ -1101,6 +999,136 @@ export default class PGDBSet<T extends object>  implements IDBSet<T> , IFluentQu
 
         obj.__proto__ = this._type;
         return true;
+    }
+
+    private async BuildObjects(r : any) : Promise<T[]>
+    {
+        let list : T[] = [];
+
+        for(let row of r.rows)
+        {
+            let instance = Reflect.construct(this._type, []) as T;
+
+            for(let map of this._maps)
+            {
+                let type = Type.GetDesingType(this._type, map.Field);
+                let relation = SchemasDecorators.GetRelationAttribute(this._type, map.Field);
+                if((!type || type === Array) && relation)
+                    type = relation.TypeBuilder();
+
+                if(!this._context.IsMapped(type!)){
+
+                    let v = Reflect.get(row, map.Column);
+
+                    let vType = Type.CastType(map.Type);
+
+                    if(v != undefined){
+
+                        if([DBTypes.INTEGER, DBTypes.LONG, DBTypes.SERIAL].includes(vType))
+                            Reflect.set(instance, map.Field,  Number.parseInt(v));
+                        else if(DBTypes.DOUBLE == vType)
+                            Reflect.set(instance, map.Field,  Number.parseFloat(v));
+                        else if([DBTypes.DATE, DBTypes.DATETIME].includes(vType)){
+
+                            try{
+                                v = new Date(v);
+                            }catch{}
+
+                            Reflect.set(instance, map.Field, v);
+                        }  
+                        else if(DBTypes.TEXT == vType)
+                            Reflect.set(instance, map.Field, v.toString());
+                        else 
+                            Reflect.set(instance, map.Field, v);                          
+                        
+                    }
+                    else 
+                        Reflect.set(instance, map.Field, v);
+                    
+                    
+                    
+                }
+                else {                   
+
+                    if(Reflect.get(row, map.Column) == undefined)
+                        continue;
+
+                    let includeType = this._includes.filter(s => s.Field == map.Field);
+
+                    let loaded : boolean = false;
+
+                    if(includeType.length > 0)
+                    {
+                        loaded = true;
+                        
+                        let colletion = this._context.Collection(type! as {new (...args: any[]) : Object})!;
+
+                        if(colletion == undefined)
+                            continue;
+
+                        let subKey = SchemasDecorators.ExtractPrimaryKey(type!)!;
+
+                        if(relation?.Relation == RelationType.MANY_TO_MANY || relation?.Relation == RelationType.ONE_TO_MANY)
+                        {
+                            let values = Reflect.get(row, map.Column);
+
+                            if(!values || values.length == 0)
+                                continue;
+
+                            colletion.Where({
+                                Field : subKey as keyof typeof type, 
+                                Kind : Operation.EQUALS, 
+                                Value : values[0] as typeof type[keyof typeof type & string]
+                            });
+
+                            for(let i = 0; i < values.length; i++)
+                            {
+                                if(i == 0)
+                                    continue;
+
+                                colletion.Or({
+                                    Field : subKey as keyof typeof type, 
+                                    Kind : Operation.EQUALS, 
+                                    Value : values[i] as typeof type[keyof typeof type & string]
+                                });
+                            }
+
+                            let subObjets = await colletion.ToListAsync();
+                            Reflect.set(instance, map.Field, subObjets);
+
+                        }else{
+
+                            colletion.Where({
+                                Field : subKey as keyof typeof type, 
+                                Kind : Operation.EQUALS, 
+                                Value : Reflect.get(row, map.Column) as typeof type[keyof typeof type & string]
+                            });
+
+                            let subObjet = await colletion.FirstOrDefaultAsync();
+                            Reflect.set(instance, map.Field, subObjet);
+
+                        }
+
+                        
+                    }
+
+                    Type.InjectMetadata(
+                        instance, 
+                        {
+                            Field: map.Field, 
+                            Type: map.Type as DBTypes,
+                            Value : Reflect.get(row, map.Column), 
+                            Loaded : loaded                                
+                        }
+                    );
+
+                }
+            }
+                          
+            list.push(instance);
+        }
+
+        return list;
     }
     
 }

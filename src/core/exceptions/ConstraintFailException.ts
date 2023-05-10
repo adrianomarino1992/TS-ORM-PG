@@ -1,6 +1,6 @@
 import Exception from "./Exception";
 
-export default class ConstraintFailExceptionException extends Exception
+export default class ConstraintFailException extends Exception
 {
     constructor(message : string)
     {

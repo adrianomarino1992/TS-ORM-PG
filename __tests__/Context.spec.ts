@@ -2,6 +2,7 @@
 import { Person } from './classes/TestEntity';
 import { Operation } from '../src/core/objects/interfaces/IStatement';
 import {TruncatePersonTableAsync, CreateContext, SeedAsync} from './TestFunctions';
+import { Message } from './classes/RelationEntity';
 
 
 
@@ -15,7 +16,7 @@ describe("Context", ()=>{
     test("Testing constructor", async ()=>{
        
         let context = CreateContext();
-
+        
         expect(context).not.toBeNull();
 
         expect(context.Persons).not.toBeNull();

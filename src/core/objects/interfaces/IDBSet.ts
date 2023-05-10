@@ -1,7 +1,7 @@
 import IStatement from "./IStatement";
 
 
-export default interface IDBSet<T>
+export default interface IDBSet<T extends Object>
 {
     AddAsync(obj : T) : Promise<T>;
     UpdateAsync(obj : T) : Promise<T>;
@@ -19,7 +19,7 @@ export default interface IDBSet<T>
 }
 
 
-export interface IFluentQueryableObject<T, R extends IDBSet<T>>
+export interface IFluentQueryableObject<T extends Object, R extends IDBSet<T>>
 {
     WhereField<K extends keyof T>(field : K) : IFluentField<T, K, R>
     WhereAsString(where : string) : R;
@@ -29,7 +29,7 @@ export interface IFluentQueryableObject<T, R extends IDBSet<T>>
 }
 
 
-export interface IFluentField<T, K extends keyof T, R extends IDBSet<T>>
+export interface IFluentField<T extends Object, K extends keyof T, R extends IDBSet<T>>
 {
     IsGreaterThan(value : T[K]) : R;
     IsEqualTo(value : T[K]) : R;
