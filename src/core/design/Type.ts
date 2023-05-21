@@ -166,6 +166,16 @@ export default class Type
         return false;
     }
 
+    public static IsText(dbType : string)
+    {
+        switch(dbType.toLocaleLowerCase())
+        {
+            case DBTypes.TEXT : return true;            
+        }
+
+        return false;
+    }
+
     /**
      * 
      * @method
@@ -177,7 +187,7 @@ export default class Type
         
         for(let k in DBTypes)
         {
-            if((DBTypes as any)[k] == type.toLocaleLowerCase().trim())
+            if((DBTypes as any)[k] == type.toLowerCase().trim())
                 return (DBTypes as any)[k]
         }
 

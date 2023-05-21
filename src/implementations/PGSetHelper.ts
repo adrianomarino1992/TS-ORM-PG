@@ -41,23 +41,30 @@ export default class PGSetHelper
 
     public static ExtractJoinData<T extends Object>(set : PGDBSet<T>) : string
     {
-        return this.ExtractORMData(set, PGSetHelper._joinKey);       
+        return PGSetHelper.ExtractORMData(set, PGSetHelper._joinKey);       
     }
 
     public static ExtractOnData<T extends Object>(set : PGDBSet<T>) : string
     {
-        return this.ExtractORMData(set, PGSetHelper._onKey);       
+        return PGSetHelper.ExtractORMData(set, PGSetHelper._onKey);       
     }
 
     public static ExtractWhereData<T extends Object>(set : PGDBSet<T>) : string
     {
-        return this.ExtractORMData(set, PGSetHelper._whereKey);       
+        return PGSetHelper.ExtractORMData(set, PGSetHelper._whereKey);       
     }
 
     public static ExtractSQLData<T extends Object>(set : PGDBSet<T>) : string
     {
-        return this.ExtractORMData(set, PGSetHelper._sqlKey);       
+        return PGSetHelper.ExtractORMData(set, PGSetHelper._sqlKey);       
     }
     
+    public static CleanORMData<T extends Object>(set : PGDBSet<T>) : void
+    {
+        PGSetHelper.InjectJoin(set, "");
+        PGSetHelper.InjectSQL(set, "");
+        PGSetHelper.InjectOn(set, "");
+        PGSetHelper.InjectSQL(set, "");
+    }
 
 }

@@ -21,11 +21,21 @@ export class Message
     public To? : Person[];     
 
 
+    @Column() 
+    public LinkTestValueInMessage? : number;
+
+    @Column() 
+    @DataType(DBTypes.INTEGERARRAY)
+    public LinkTestArrayInMessage? : number[];
+
+
     constructor(message : string, from? : Person, to? : Person[])
     {
         this.Message = message;
         this.From = from;
         this.To = to;       
+        this.LinkTestValueInMessage = -1;
+        this.LinkTestArrayInMessage = [];
     }
        
 

@@ -276,6 +276,7 @@ export default class PGDBManager implements IDBManager
             case "integer" : return "integer";
             case "number" : return "bigint";
             case "long" : return "bigint";
+            case "double" : return "double";
             case "text" : return "text";
             case "string" : return "text";
             case "date" : return "date";

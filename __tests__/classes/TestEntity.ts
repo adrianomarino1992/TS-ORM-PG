@@ -45,6 +45,13 @@ export class Person
     @OneToMany(()=> Message, "To")
     public MessagesReceived? : Message[];
 
+    
+    @Column() 
+    public LinkTestValueInPerson : number;
+
+    @Column() 
+    @DataType(DBTypes.INTEGERARRAY)
+    public LinkTestArrayInPerson : number[];
   
     constructor(name : string = "", email : string = "", age : number = 1)
     {
@@ -57,6 +64,8 @@ export class Person
         this.Documents = []; 
         this.MessagesReceived = [];
         this.MessagesWriten = [];
+        this.LinkTestValueInPerson = -1;
+        this.LinkTestArrayInPerson = [];
        
     }
        

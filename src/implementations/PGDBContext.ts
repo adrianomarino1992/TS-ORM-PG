@@ -3,7 +3,7 @@ import SchemasDecorators from "../core/decorators/SchemasDecorators";
 import Type from "../core/design/Type";
 import ConstraintFailException from "../core/exceptions/ConstraintFailException";
 import InvalidOperationException from "../core/exceptions/InvalidOperationException";
-import IDBContext, {IThreeQueryableObject,IJoiningQuery} from "../core/objects/interfaces/IDBContext";
+import IDBContext, {IThreeQueryableObject,IJoiningQuery, IJoinSelectable} from "../core/objects/interfaces/IDBContext";
 import IDBSet from "../core/objects/interfaces/IDBSet";
 import IStatement from "../core/objects/interfaces/IStatement";
 import PGDBManager from "./PGDBManager";
@@ -19,8 +19,8 @@ export default abstract class PGDBContext implements IDBContext , IThreeQueryabl
     constructor(manager : PGDBManager)
     {
         this._manager = manager;  
-    }       
-   
+    }      
+    
     
     public GetMappedTypes()
     {
@@ -85,22 +85,16 @@ export default abstract class PGDBContext implements IDBContext , IThreeQueryabl
     }    
 
 
-    From<T1 extends Object, T2 extends Object>(cT1: new (...args: any[]) => T1, cT2: new (...args: any[]) => T2): IJoiningQuery<T1, T2, unknown, unknown, unknown, unknown>;
-    From<T1 extends Object, T2 extends Object, T3 extends Object>(cT1: new (...args: any[]) => T1, cT2: new (...args: any[]) => T2, cT3: new (...args: any[]) => T3): IJoiningQuery<T1, T2, T3, unknown, unknown, unknown>;
-    From<T1 extends Object, T2 extends Object, T3 extends Object, T4 extends Object>(cT1: new (...args: any[]) => T1, cT2: new (...args: any[]) => T2, cT3: new (...args: any[]) => T3, cT4: new (...args: any[]) => T4): IJoiningQuery<T1, T2, T3, T4, unknown, unknown>;
-    From<T1 extends Object, T2 extends Object, T3 extends Object, T4 extends Object, T5 extends Object>(cT1: new (...args: any[]) => T1, cT2: new (...args: any[]) => T2, cT3: new (...args: any[]) => T3, cT4: new (...args: any[]) => T4, cT5: new (...args: any[]) => T5): IJoiningQuery<T1, T2, T3, T4, T5, unknown>;
-    From<T1 extends Object, T2 extends Object, T3 extends Object, T4 extends Object, T5 extends Object, T6 extends Object>(cT1: new (...args: any[]) => T1, cT2: new (...args: any[]) => T2, cT3: new (...args: any[]) => T3, cT4: new (...args: any[]) => T4, cT5: new (...args: any[]) => T5, cT6: new (...args: any[]) => T6): IJoiningQuery<T1, T2, T3, T4, T5, T6>;
-    From<T1 extends Object, T2 extends Object, T3 extends Object, T4 extends Object, T5 extends Object, T6 extends Object>(cT1: T1, cT2: T2, cT3?: T3, cT4?: T4, cT5?: T5, cT6?: T6): IJoiningQuery<T1, T2, unknown, unknown, unknown, unknown> | IJoiningQuery<T1, T2, T3, unknown, unknown, unknown> | IJoiningQuery<T1, T2, T3, T4, unknown, unknown> | IJoiningQuery<T1, T2, T3, T4, T5, unknown> | IJoiningQuery<T1, T2, T3, T4, T5, T6> {
-       
-        return new JoiningQuery(this, cT1, cT2, cT3, cT4, cT5, cT6);
-    }
-   
+    Join(...args: (new (...args: any[]) => Object)[]): IJoiningQuery {
+        
+        return new JoiningQuery(this, args);
+    }   
           
     
 
 }
 
-export class JoiningQuery<T1 extends Object, T2 extends Object, T3 extends Object, T4 extends Object, T5 extends Object, T6 extends Object> implements IJoiningQuery<T1, T2, T3, T4, T5, T6>
+export class JoiningQuery implements IJoiningQuery
 {
 
     private _context : PGDBContext;
@@ -108,82 +102,117 @@ export class JoiningQuery<T1 extends Object, T2 extends Object, T3 extends Objec
     private _onStatements : [string, string][] = [];
     
 
-    constructor(context : PGDBContext, cT1: T1, cT2: T2, cT3?: T3, cT4?: T4, cT5?: T5, cT6?: T6)
+    constructor(context : PGDBContext, stack :  (new (...args: any[]) => Object)[])
     {
         this._context = context;
-        this._stack.push({Type : cT1 as unknown });
-        this._stack.push({Type : cT2 as unknown});
+        this._stack.push(...stack.map(s => {return { Type : s as unknown}}));
         
-        if(cT3)
-            this._stack.push({Type : cT3 as unknown});
-        if(cT4)
-            this._stack.push({Type : cT4 as unknown});
-        if(cT5)
-            this._stack.push({Type : cT5 as unknown});
-        if(cT6)
-            this._stack.push({Type : cT6 as unknown});
+        let notMappedTypes = this._stack.filter(s => this._context.Collection(s.Type as new (...args: any[]) => Object ) == undefined);
+
+       
+        if(notMappedTypes.length > 0)
+        {
+            this._stack = [];
+            throw new InvalidOperationException(`The type ${(notMappedTypes[0].Type as any).name} is not mapped`);
+        }
+
+
        
     }
-    On<C extends T1 | T2 | T3 | T4 | T5 | T6, U extends T1 | T2 | T3 | T4 | T5 | T6>(cT: { new(...args: any[]): C }, cKey: keyof C, uT: { new(...args: any[]): U}, uKey: keyof U): IJoiningQuery<T1, T2, T3, T4, T5, T6> {
+    On<C extends Object, U extends Object>(cT: { new(...args: any[]): C }, cKey: keyof C, uT: { new(...args: any[]): U}, uKey: keyof U): IJoiningQuery {
        
-        
-        let table = this._stack.filter(s => s.Type == cT);
+        this.CheckIfTypeIsAllowed(cT); 
+        this.CheckIfTypeIsAllowed(cT); 
 
-        if(table.length == 0)
-            throw new InvalidOperationException(`The is no ${cT.name} table in From statement`); 
-            
-
-        let leftIndex = this._stack.indexOf(table[0]);
-
-        table = this._stack.filter(s => s.Type == uT);
-
-        if(table.length == 0)
-            throw new InvalidOperationException(`The is no ${uT.name} table in From statement`);
-
-        let rightIndex = this._stack.indexOf(table[0]);
+        let leftIndex = this._stack.findIndex(s => s.Type == cT);
+        let rightIndex = this._stack.findIndex(s => s.Type == uT);
 
         if(rightIndex - leftIndex != 1)
-            throw new InvalidOperationException(`The On statement must follow the same order than From`);
+            throw new InvalidOperationException(`The On statement must follow the same order than Join`);
         
         this._onStatements.push([cKey.toString(), uKey.toString()]);
 
         return this;
     }
    
-    Where<C extends T1 | T2 | T3 | T4 | T5 | T6, K extends keyof C>(cT: new (...args: any[]) => C, statement: IStatement<C, K>): IJoiningQuery<T1, T2, T3, T4, T5, T6> {
+    Where<C extends Object, K extends keyof C>(cT: new (...args: any[]) => C, statement: IStatement<C, K>): IJoiningQuery {
         
-        let set = this._context.Collection(cT);
-
-        if(!set)
-            throw new InvalidOperationException(`The type ${cT.name} is not mapped`);
+        this.CheckIfTypeIsAllowed(cT);
         
+        let set = this._context.Collection(cT)!;
         set.Where(statement);
 
         return this;
 
     }
-    And<C extends T1 | T2 | T3 | T4 | T5 | T6, K extends keyof C>(cT: new (...args: any[]) => C, statement: IStatement<C, K>): IJoiningQuery<T1, T2, T3, T4, T5, T6> {
-        let set = this._context.Collection(cT);
-
-        if(!set)
-            throw new InvalidOperationException(`The type ${cT.name} is not mapped`);
+    And<C extends Object, K extends keyof C>(cT: new (...args: any[]) => C, statement: IStatement<C, K>): IJoiningQuery {
+        this.CheckIfTypeIsAllowed(cT);
         
+        let set = this._context.Collection(cT)!;
         set.And(statement);
 
         return this;
     }
-    Or<C extends T1 | T2 | T3 | T4 | T5 | T6, K extends keyof C>(cT: new (...args: any[]) => C, statement: IStatement<C, K>): IJoiningQuery<T1, T2, T3, T4, T5, T6> {
+    Or<C extends Object, K extends keyof C>(cT: new (...args: any[]) => C, statement: IStatement<C, K>): IJoiningQuery {
 
+        this.CheckIfTypeIsAllowed(cT);
+        
+        let set = this._context.Collection(cT)!;
+        set.Or(statement);
+
+        return this;
+    }
+
+    Select<C extends Object>(cT: new (...args: any[]) => C): IJoinSelectable<C> {
+
+        return new JoinSelectable(cT, this._context, this._stack, this._onStatements);
+    }
+
+    private CheckIfTypeIsAllowed(cT: new (...args: any[]) => Object)
+    {
         let set = this._context.Collection(cT);
 
         if(!set)
             throw new InvalidOperationException(`The type ${cT.name} is not mapped`);
         
-        set.Or(statement);
+        let index = this._stack.findIndex(s => s.Type == cT);
 
+        if(index == -1)
+            throw new InvalidOperationException(`The type ${cT.name} is not inside the Join list`);
+    }
+   
+}
+
+
+export class JoinSelectable<T extends Object> implements IJoinSelectable<T>
+{
+    private _context : PGDBContext;
+    private _stack : IUnion[] = [];
+    private _onStatements : [string, string][] = [];
+    private _type : new (...args: any[]) => T;
+    constructor(cT : new (...args: any[]) => T,  context : PGDBContext, stack : IUnion[], onStack : [string, string][])
+    {
+        this._type = cT;
+        this._context = context;
+        this._stack = stack;
+        this._onStatements = onStack;
+    }
+   
+    Join<K extends keyof T>(key: K): IJoinSelectable<T> {
+
+       this._context.Collection(this._type)?.Join(key);
+       return this;
+    }
+    OrderBy<K extends keyof T>(key: K): IJoinSelectable<T> {
+        this._context.Collection(this._type)?.OrderBy(key);
         return this;
     }
-    public async ToListAsync<C extends T1 | T2 | T3 | T4 | T5 | T6>(cT: new (...args: any[]) => C): Promise<C[]> {
+    OrderDescendingBy<K extends keyof T>(key: K): IJoinSelectable<T> {
+        this._context.Collection(this._type)?.OrderDescendingBy(key);
+       return this;
+    }
+
+    public async ToListAsync(): Promise<T[]> {
 
         if(this._stack.length > this._onStatements.length + 1)
             throw new InvalidOperationException(`There is no enought On clausules to join all selected types`);
@@ -191,11 +220,11 @@ export class JoiningQuery<T1 extends Object, T2 extends Object, T3 extends Objec
         if(this._stack.length < this._onStatements.length + 1)
             throw new InvalidOperationException(`There is more On clausules than join types selecteds`);
 
-        let selectedSideSet = this._context.Collection(cT);
+        let selectedSideSet = this._context.Collection(this._type);
 
         let leftSideType = this._stack[0].Type as Function;
 
-        let selectedTable = Type.GetTableName(cT);
+        let selectedTable = Type.GetTableName(this._type);
 
         let query = `select distinct "${selectedTable}".* from "${Type.GetTableName(leftSideType)}" `;
 
@@ -216,7 +245,7 @@ export class JoiningQuery<T1 extends Object, T2 extends Object, T3 extends Objec
 
             if((leftSideIsArray && rightSideIsArray) || (!leftSideIsArray && !rightSideIsArray))
             {
-                query += ` "${leftSideTable}".${Type.GetColumnName(leftSideType, leftSideField)} = "${rigthSideTable}".${Type.GetColumnName(rightSideType, leftSideField)} `
+                query += ` "${leftSideTable}".${Type.GetColumnName(leftSideType, leftSideField)} = "${rigthSideTable}".${Type.GetColumnName(rightSideType, rightSideField)} `
 
             }else if (leftSideIsArray && !rightSideIsArray)
             {
@@ -235,7 +264,7 @@ export class JoiningQuery<T1 extends Object, T2 extends Object, T3 extends Objec
 
                    let leftSideDBType = Type.CastType(relationMap.filter(s => s.Field == key)[0].Type);
                    let rightSideDBType = Type.CastType(rightSideTypeMap.filter(s => s.Field == rightSideField)[0].Type);
-                   let leftColumnName =  relationMap.filter(s => s.Field == key)[0].Column;
+                   let leftColumnName =  leftSideTypeMap.filter(s => s.Field == leftSideField)[0].Column;
                    let rightColumnName =  rightSideTypeMap.filter(s => s.Field == rightSideField)[0].Column;
 
                    if(leftSideDBType != rightSideDBType)
@@ -265,7 +294,15 @@ export class JoiningQuery<T1 extends Object, T2 extends Object, T3 extends Objec
                     let rightSideDBType = Type.CastType(rightSideTypeMap.filter(s => s.Field == rightSideField)[0].Type);                        
                     let rightColumnName =  rightSideTypeMap.filter(s => s.Field == rightSideField)[0].Column;
 
-                    if(elementType != rightSideDBType)
+                    let areNumbers = Type.IsNumber(Type.CastType(elementType)) && Type.IsNumber(rightSideDBType);
+                    let areString = Type.IsText(Type.CastType(elementType)) && Type.IsText(rightSideDBType)
+                    let areDate = Type.IsDate(Type.CastType(elementType)) && Type.IsDate(rightSideDBType)
+                    let areArray = Type.IsArray(Type.CastType(elementType)) && Type.IsArray(rightSideDBType)
+                    let areSameType =  this._context["_manager"]["CastToPostgreSQLType"](elementType) == this._context["_manager"]["CastToPostgreSQLType"](rightSideDBType);
+                    let areSerial =  this._context["_manager"]["CastToPostgreSQLType"](elementType) == "serial" && this._context["_manager"]["CastToPostgreSQLType"](rightSideDBType) == "serial";
+                    
+
+                    if(!(areNumbers || areString || areDate || areArray || areSameType || areSerial))
                         throw new InvalidOperationException(`${leftSideType.name}.${leftSideField} and ${rightSideType.name}.${rightSideField} must be the same type to join`);
 
                     query += ` "${rigthSideTable}".${rightColumnName} = ANY("${leftSideTable}".${leftColumnName})`;
@@ -317,7 +354,14 @@ export class JoiningQuery<T1 extends Object, T2 extends Object, T3 extends Objec
                     let leftSideDBType = Type.CastType(leftSideTypeMap.filter(s => s.Field == leftSideField)[0].Type);                        
                     let rightColumnName =  rightSideTypeMap.filter(s => s.Field == rightSideField)[0].Column;
 
-                    if(elementType != leftSideDBType)
+                    let areNumbers = Type.IsNumber(Type.CastType(elementType)) && Type.IsNumber(leftSideDBType);
+                    let areString = Type.IsText(Type.CastType(elementType)) && Type.IsText(leftSideDBType)
+                    let areDate = Type.IsDate(Type.CastType(elementType)) && Type.IsDate(leftSideDBType)
+                    let areArray = Type.IsArray(Type.CastType(elementType)) && Type.IsArray(leftSideDBType)
+                    let areSameType =  this._context["_manager"]["CastToPostgreSQLType"](elementType) == this._context["_manager"]["CastToPostgreSQLType"](leftSideDBType);
+                    let areSerial =  this._context["_manager"]["CastToPostgreSQLType"](elementType) == "serial" && this._context["_manager"]["CastToPostgreSQLType"](leftSideDBType) == "serial";
+
+                    if(!(areNumbers || areString || areDate || areArray || areSameType || areSerial))
                         throw new InvalidOperationException(`${leftSideType.name}.${leftSideField} and ${rightSideType.name}.${rightSideField} must be the same type to join`);
 
                         
@@ -328,16 +372,33 @@ export class JoiningQuery<T1 extends Object, T2 extends Object, T3 extends Objec
             leftSideType = this._stack[i].Type as Function;
         }
         
+        let where = "";
 
-        PGSetHelper.InjectJoin(selectedSideSet! as PGDBSet<C>, query);
+        for(let type of this._stack)
+        {
+            let set = this._context.Collection(type.Type as {new (...args: any[]) : Object})! as PGDBSet<Object>;
+
+            let statements = set["_statements"];
+
+            for(let s of statements)
+            {
+                let operation = s.StatementType.toString();
+
+                if(operation == "where" && where.length > 0)
+                    operation = "and";
+                
+                where += ` ${operation} ${set["EvaluateStatement"](s)}`;
+            }
+        }
+
+        PGSetHelper.InjectSQL<T>(selectedSideSet! as PGDBSet<T>, query);
+        PGSetHelper.InjectWhere<T>(selectedSideSet! as PGDBSet<T>, where);
         
         return await selectedSideSet!.ToListAsync();        
         
     }
-
-   
+    
 }
-
 
 
 interface IUnion

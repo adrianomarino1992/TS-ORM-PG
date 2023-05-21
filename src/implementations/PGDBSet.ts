@@ -567,6 +567,7 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
     }
     Where<K extends keyof T>(statement : IStatement<T, K>): IDBSet<T> {
 
+        this.ResetFilters();
        
        this._statements.push(
         {
@@ -658,33 +659,33 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
     public async ToListAsync(): Promise<T[]> {
 
         return this.CreatePromisse(async () => 
-        {
-            let joinSrt = PGSetHelper.ExtractJoinData(this);
-            let onSrt = PGSetHelper.ExtractOnData(this);
+        {            
             let whereSrt = PGSetHelper.ExtractWhereData(this);
             let sqlSrt = PGSetHelper.ExtractSQLData(this);
 
             let query = `select "${this._table}".* from "${this._table}"`;  
             
-            if(joinSrt)
-                query = joinSrt;
-
-            if(this._whereAsString != undefined && this._statements.length > 0)
-            {
-                throw new InvalidOperationException("Is not possible combine free and structured queries");
-            }
-
-            if(this._whereAsString != undefined)
-            {
-                query += ` ${this._whereAsString} `;                
-            }
-
-            query += this.EvaluateWhere();
-                
-            query += whereSrt;
-
-            if(sqlSrt && sqlSrt.toLowerCase().trim().startsWith(`select "${this._table}".*`))
+            if(sqlSrt && sqlSrt.toLowerCase().trim().startsWith(`select distinct "${this._table}".*`))
                 query = sqlSrt;
+
+            if(!whereSrt){
+
+                if(this._whereAsString != undefined && this._statements.length > 0)
+                {
+                    throw new InvalidOperationException("Is not possible combine free and structured queries");
+                }
+
+                if(this._whereAsString != undefined)
+                {
+                    query += ` ${this._whereAsString} `;                
+                }
+
+                query += this.EvaluateWhere();
+
+            }else
+            {
+                query += whereSrt;
+            }                
                 
             let ordenation = "";
 
@@ -736,6 +737,9 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
     }
 
     public WhereField<U extends keyof T, R extends PGDBSet<T>>(field: U): IFluentField<T, U, R> {        
+        
+        this.ResetFilters();
+
         return new PGFluentField(this as any as R, field, false);
     }
     public AndField<U extends keyof T, R extends PGDBSet<T>>(field: U): IFluentField<T, U, R> {        
@@ -748,6 +752,8 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
 
     public WhereAsString<R extends PGDBSet<T>>(where : string) : R
     {
+        this.ResetFilters();
+
         if(where && !where.trim().toLocaleLowerCase().startsWith("where"))
         {
             where = `where ${where}`;
@@ -881,9 +887,68 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
         if(pgStatement.Statement.Value == undefined)
             return `"${this._table}".${column} is null`;
         
-        if(this._context.IsMapped(type))
+
+
+        
+        if(this._context.IsMapped(type) || (relation && this._context.IsMapped(relation.TypeBuilder())))
         {
-            throw new InvalidOperationException(`Can not determine the correct type conversion for propety ${pgStatement.Statement.Field.toString()}`);
+            if(!relation)
+                throw new InvalidOperationException(`Can not determine the correct type conversion for propety ${pgStatement.Statement.Field.toString()}`);
+
+            
+
+            if(isArray)
+            {
+                if(pgStatement.Statement.Value.lenght == 0)
+                    return `coalesce(array_length("${this._table}".${column}, 1), 0) = 0`;
+
+                if((pgStatement.Statement.Value as any[]).filter(s => s == undefined || s == null).length > 0)
+                    throw new InvalidOperationException(`Can not compare relations with null or undefined objets`);
+
+                let c = pgStatement.Statement.Value[0];
+
+                let k = SchemasDecorators.ExtractPrimaryKey(c.constructor);
+                if(!k)
+                    throw new ConstraintFailException(`The type ${c.constructor.name} must have a key field`);
+
+                let elementType = Type.GetDesingTimeTypeName(c.constructor, k);
+
+                let internalType = Type.CastType(elementType!);
+
+                let keyType = DBTypes.LONGARRAY;
+
+                if(Type.IsNumber(internalType))
+                    keyType = DBTypes.LONGARRAY;
+                else if(Type.IsText(internalType))
+                    keyType = DBTypes.TEXTARRAY;
+                else if(Type.IsDate(internalType))
+                    keyType = DBTypes.DATEARRAY;
+                else 
+                    throw new InvalidOperationException(`Can not determine the correct type conversion for propety ${pgStatement.Statement.Field.toString()}`);
+                    
+                let newValues : any[] = [];
+
+                for(let e of pgStatement.Statement.Value)
+                {       
+                    newValues = [e[k]];             
+                }
+
+                typeName = keyType;
+                pgStatement.Statement.Value = newValues as any;
+
+            }else{
+
+                let k = SchemasDecorators.ExtractPrimaryKey(pgStatement.Statement.Value.constructor);
+                if(!k)
+                    throw new ConstraintFailException(`The type ${pgStatement.Statement.Value.constructor.name} must have a key field`);
+                
+                let elementType = Type.GetDesingTimeTypeName(pgStatement.Statement.Value.constructor, k);
+
+                let internalType = Type.CastType(elementType!);
+
+                typeName = internalType;
+                pgStatement.Statement.Value = pgStatement.Statement.Value[k];
+            }
         }
         
         if(isArray)
@@ -919,7 +984,7 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
 
             if([Operation.CONSTAINS, Operation.ENDWITH, Operation.STARTWITH].filter(s => s == pgStatement.Statement.Kind).length > 0)
             {
-               throw new InvalidOperationException(`Can not execute ${pgStatement.Statement.Kind.toString().toLocaleLowerCase()} with numbers or dates`);
+               throw new InvalidOperationException(`Can execute ${pgStatement.Statement.Kind.toString().toLocaleLowerCase()} only with text and array fields`);
             }        
 
         }else
@@ -956,12 +1021,18 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
     }
 
     private Reset() : void
-    {
-        this._statements = [];
+    {       
         this._ordering = [];
         this._includes = [];
-        this._limit = undefined;
+        this._limit = undefined;       
+        this.ResetFilters();
+    }
+
+    private ResetFilters() : void
+    {
+        this._statements = [];       
         this._whereAsString = undefined;
+        PGSetHelper.CleanORMData(this);
     }
 
     private IsCorrectType(obj : any) : boolean
