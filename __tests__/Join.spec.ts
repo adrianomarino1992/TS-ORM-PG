@@ -5,50 +5,46 @@ import {CompleteSeedAsync} from './TestFunctions';
 import { Message } from './classes/RelationEntity';
 
 
-
-
-
-
 describe("Context", ()=>{    
 
-    // test("Testing join with right side is array and have relation with left", async ()=>{
+    test("Testing join with right side is array and have relation with left", async ()=>{
        
-    //     let context = await CompleteSeedAsync();
+        let context = await CompleteSeedAsync();
 
-    //     let msgs = await context.Join(Person, Message)
-    //                            .On(Person, "Id", Message, "To")       
-    //                            .Where(Person, 
-    //                                 {
-    //                                     Field : "Name",
-    //                                     Kind : Operation.CONSTAINS, 
-    //                                     Value : "camila"
-    //                                 })
-    //                            .Select(Message).Join("To").ToListAsync();
+        let msgs = await context.Join(Person, Message)
+                               .On(Person, "Id", Message, "To")       
+                               .Where(Person, 
+                                    {
+                                        Field : "Name",
+                                        Kind : Operation.CONSTAINS, 
+                                        Value : "camila"
+                                    })
+                               .Select(Message).Join("To").ToListAsync();
         
         
-    //     expect(msgs.length).toBe(2);
-    //     expect(msgs[0].To?.length).toBe(1);
-    //     expect(msgs[1].To?.length).toBe(3);        
+        expect(msgs.length).toBe(2);
+        expect(msgs.findIndex(s => s.To?.length == 3)).toBeGreaterThan(-1);
+        expect(msgs.findIndex(s => s.To?.length == 1)).toBeGreaterThan(-1);          
         
-    // });
+    });
 
-    // test("Testing the same with array using conventional query sintax", async()=>{
+    test("Testing the same with array using conventional query sintax", async()=>{
 
-    //     let context = await CompleteSeedAsync();
+        let context = await CompleteSeedAsync();
 
-    //     let camila = await context.Persons.Where({ Field : "Name", Value : "camila"}).FirstOrDefaultAsync();
+        let camila = await context.Persons.Where({ Field : "Name", Value : "camila"}).FirstOrDefaultAsync();
 
-    //     let msgs = await context.Messages.Where(
-    //         {
-    //             Field : "To", 
-    //             Kind : Operation.CONSTAINS,
-    //             Value : [camila!]
-    //         }).Join("To").ToListAsync();
+        let msgs = await context.Messages.Where(
+            {
+                Field : "To", 
+                Kind : Operation.CONSTAINS,
+                Value : [camila!]
+            }).Join("To").ToListAsync();
 
-    //     expect(msgs.length).toBe(2);
-    //     expect(msgs[0].To?.length).toBe(1);
-    //     expect(msgs[1].To?.length).toBe(3);   
-    // });
+        expect(msgs.length).toBe(2);
+        expect(msgs.findIndex(s => s.To?.length == 3)).toBeGreaterThan(-1);
+        expect(msgs.findIndex(s => s.To?.length == 1)).toBeGreaterThan(-1);           
+    });
 
     test("Testing the same with conventional query sintax", async()=>{
 
@@ -62,12 +58,13 @@ describe("Context", ()=>{
                 Value : adriano!
             }).Join("From").ToListAsync();
 
-        expect(msgs.length).toBe(2);
-        expect(msgs[0].To?.length).toBe(1);
-        expect(msgs[1].To?.length).toBe(3);   
-    })
+        expect(msgs.length).toBe(3);
+        expect(msgs[0].From?.Name).toBe("adriano");
+        expect(msgs[1].From?.Name).toBe("adriano");
+        expect(msgs[2].From?.Name).toBe("adriano");
+        
+    });    
     
-    /*
     test("Testing join with right side is array, but left side nort, and left side have relation with right", async ()=>{
        
         let context = await CompleteSeedAsync();
@@ -86,6 +83,7 @@ describe("Context", ()=>{
                                             Value : "private"
                                         })
                                .Select(Message).Join("To").ToListAsync();
+     
 
         expect(msgs.length).toBe(1);       
         expect(msgs[0].To?.length).toBe(1);        
@@ -108,8 +106,8 @@ describe("Context", ()=>{
                                .Select(Message).Join("To").ToListAsync();
 
         expect(msgs.length).toBe(2);
-        expect(msgs[0].To?.length).toBe(3);
-        expect(msgs[1].To?.length).toBe(1);        
+        expect(msgs.findIndex(s => s.To?.length == 3)).toBeGreaterThan(-1);
+        expect(msgs.findIndex(s => s.To?.length == 1)).toBeGreaterThan(-1);            
         
     });
 
@@ -155,8 +153,8 @@ describe("Context", ()=>{
         expect(msgs.length).toBe(2);
         expect(msgs[0].From?.Name).toBe("adriano");       
         expect(msgs[1].From?.Name).toBe("adriano");       
-        expect(msgs[0].To?.length).toBe(1);
-        expect(msgs[1].To?.length).toBe(3);
+        expect(msgs.findIndex(s => s.To?.length == 3)).toBeGreaterThan(-1);
+        expect(msgs.findIndex(s => s.To?.length == 1)).toBeGreaterThan(-1);    
                
         
     });
@@ -176,6 +174,5 @@ describe("Context", ()=>{
         expect(msgs.length).toBe(3);      
                        
     });
-
-    */
+    
 });

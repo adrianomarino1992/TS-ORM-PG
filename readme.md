@@ -239,7 +239,7 @@ let persons = await context.Persons.Where({
 ```
 
 # Join
-
+We can load all related entities
 ```typescript
 
 let persons = await context.Persons.Where({
@@ -250,7 +250,27 @@ let persons = await context.Persons.Where({
                                    .ToListAsync(); 
 
 ```
-This query will retrieve from database all persons with name "Adriano" and load all mensagens that this persons are in "To" list.
+This query will retrive from database all persons with name "Adriano" and will load all messages receiveds base on relations attributes
+
+## We can create complex Joins
+
+
+```typescript 
+   let msgs = await context.Join(Person, Message)
+                           .On(Person, "Id", Message, "To")       
+                           .Where(Person,{
+                                         Field : "Name",                 
+                                         Value : "camila"
+                                        })
+                          .Where(Message, {
+                                           Field : "Date",
+                                           Kind : Operation.GREATHEROREQUALS, 
+                                           Value : new Date(2023,0,1)
+                                           })
+                         .Select(Message).Join("To").ToListAsync();
+```
+
+This query will retrieve from database all messages sent to a person with name "camila" and that are sent this year.
 
 
 ## Order by

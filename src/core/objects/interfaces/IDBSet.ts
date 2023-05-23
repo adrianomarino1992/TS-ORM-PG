@@ -13,6 +13,7 @@ export default interface IDBSet<T extends Object>
     OrderDescendingBy<K extends keyof T>(key : K) : IDBSet<T>;
     Join<K extends keyof T>(key : K) : IDBSet<T>;
     Limit(limit : number) : IDBSet<T>;
+    CountAsync() : Promise<number>;
     ToListAsync() : Promise<T[]>;
     FirstOrDefaultAsync() : Promise<T | undefined>;
     CleanQueryTree() : void;

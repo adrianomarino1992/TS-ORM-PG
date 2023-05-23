@@ -16,5 +16,7 @@ export enum Operation
     ENDWITH = '_%',
     CONSTAINS = '%_%',
     GREATHER = '>',
-    SMALLER = '<'
+    GREATHEROREQUALS = '>=',
+    SMALLER = '<',
+    SMALLEROREQUALS = '<='
 }

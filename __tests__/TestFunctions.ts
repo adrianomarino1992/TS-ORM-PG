@@ -57,7 +57,7 @@ export async function CompleteSeedAsync(): Promise<Context> {
 
   let context = CreateContext();
 
-  if((await context.Persons.ToListAsync()).length > 0)
+  if((await context.Persons.CountAsync()) > 0)
       return context;
 
   await TruncateTablesAsync();

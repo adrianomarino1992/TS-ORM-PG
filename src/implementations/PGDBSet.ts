@@ -655,6 +655,51 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
         this._limit = limit >= 1 ? { Limit : limit} : undefined; 
         return this;
     }  
+
+    public async CountAsync(): Promise<number> {
+
+        return this.CreatePromisse(async () => 
+        { 
+
+            let query = `select count(*) from "${this._table}"`; 
+
+            if(this._whereAsString != undefined && this._statements.length > 0)
+            {
+                throw new InvalidOperationException("Is not possible combine free and structured queries");
+            }
+
+            if(this._whereAsString != undefined)
+            {
+                query += ` ${this._whereAsString} `;                
+            }
+
+            query += this.EvaluateWhere();        
+                
+            let ordenation = "";
+
+            for(let orderby of this._ordering)
+            {
+                ordenation += `${this.EvaluateOrderBy(orderby)},`;
+            }   
+
+            if(this._ordering.length > 0)
+            {
+                query += ` order by ${ordenation.substring(0, ordenation.length - 1)}`
+            }
+            
+            if(this._limit != undefined)
+            {
+                query += ` limit ${this._limit.Limit}`;
+            }
+
+            var r = await this._manager.Execute(query);
+
+            this.Reset();
+
+            return r.rows[0].count;            
+
+        });       
+    } 
    
     public async ToListAsync(): Promise<T[]> {
 
@@ -885,17 +930,12 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
         } 
 
         if(pgStatement.Statement.Value == undefined)
-            return `"${this._table}".${column} is null`;
-        
-
-
+            return `"${this._table}".${column} is null`;   
         
         if(this._context.IsMapped(type) || (relation && this._context.IsMapped(relation.TypeBuilder())))
         {
             if(!relation)
-                throw new InvalidOperationException(`Can not determine the correct type conversion for propety ${pgStatement.Statement.Field.toString()}`);
-
-            
+                throw new InvalidOperationException(`Can not determine the correct type conversion for propety ${pgStatement.Statement.Field.toString()}`);            
 
             if(isArray)
             {
@@ -966,12 +1006,12 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
                 return `"${this._table}".${column} != ${this.CreateValueStatement(typeName as DBTypes, pgStatement.Statement.Value)}`; 
             }
 
-            if(pgStatement.Statement.Kind == Operation.SMALLER)
+            if(pgStatement.Statement.Kind == Operation.SMALLER || pgStatement.Statement.Kind == Operation.SMALLEROREQUALS)
             {
                 return `"${this._table}".${column} <@ ${this.CreateValueStatement(typeName as DBTypes, pgStatement.Statement.Value)}`; 
             }
 
-            if([Operation.STARTWITH, Operation.CONSTAINS, Operation.ENDWITH, Operation.GREATHER].includes(pgStatement.Statement.Kind))
+            if([Operation.STARTWITH, Operation.CONSTAINS, Operation.ENDWITH, Operation.GREATHER, Operation.GREATHEROREQUALS].includes(pgStatement.Statement.Kind))
             {
                 return `"${this._table}".${column} @> ${this.CreateValueStatement(typeName as DBTypes, pgStatement.Statement.Value)}`; 
             }           
@@ -979,8 +1019,29 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
         
         if(Type.IsNumber(Type.CastType(typeName!.toString())) || Type.IsDate(Type.CastType(typeName!.toString())))
         {
+
             operation[1] = "";
             operation[2] = "";  
+
+            if(Type.IsDate(Type.CastType(typeName!.toString()))){                  
+            
+                   
+                    let dt : Date = pgStatement.Statement.Value as unknown as Date;
+
+                    if(!dt)
+                        throw new InvalidOperationException(`Can not cast the value: "${pgStatement.Statement.Value}" in a valid date`);
+        
+                    let dtStr = `'${dt.getFullYear()}-${dt.getMonth() + 1}-${dt.getDate()}'`;
+                                
+                    if(Type.CastType(typeName!.toString()) == DBTypes.DATE)
+                    {
+                        pgStatement.Statement.Value = `'${dtStr}'::date`;
+                    }
+                    else
+                    {
+                        pgStatement.Statement.Value = `'${dtStr} ${dt.getHours()}:${dt.getMinutes()}'::timestamp` ;
+                    }
+            }
 
             if([Operation.CONSTAINS, Operation.ENDWITH, Operation.STARTWITH].filter(s => s == pgStatement.Statement.Kind).length > 0)
             {
@@ -989,7 +1050,6 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
 
         }else
         {
-
             operation[1] = `$$${operation[1]}`;
             operation[2] = `${operation[2]}$$`;
         }
@@ -1014,7 +1074,9 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
             case Operation.STARTWITH : return ["ilike", "", "%"];;
             case Operation.ENDWITH : return ["ilike", "%", ""];;
             case Operation.GREATHER : return [">", "", ""];;
+            case Operation.GREATHEROREQUALS : return [">=", "", ""];;
             case Operation.SMALLER : return ["<", "", ""];;
+            case Operation.SMALLEROREQUALS : return ["<=", "", ""];;
             case Operation.NOTEQUALS : return ["!=", "", ""];;
             default: throw new NotImpletedException(`The operation ${operation} is not supported`);
         }
