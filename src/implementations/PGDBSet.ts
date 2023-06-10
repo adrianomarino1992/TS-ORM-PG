@@ -858,15 +858,15 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
             if(!dt)
                 throw new InvalidOperationException(`Can not cast the value: "${value}" in a valid date`);
 
-            let dtStr = `'${dt.getFullYear()}-${dt.getMonth() + 1}-${dt.getDate()}'`;
+            let dtStr = `${dt.getFullYear()}-${dt.getMonth() + 1}-${dt.getDate()}`;
                         
             if(colType == DBTypes.DATE)
             {
-               return `${dtStr}`;
+               return `'${dtStr}'::date`;
             }
             else
             {
-                return `${dtStr} ${dt.getHours()}:${dt.getMinutes()}` ;
+                return `'${dtStr} ${dt.getHours()}:${dt.getMinutes()}'::timestamp` ;
             }
                         
         }else if (Type.IsArray(colType))
@@ -1031,7 +1031,7 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
                     if(!dt)
                         throw new InvalidOperationException(`Can not cast the value: "${pgStatement.Statement.Value}" in a valid date`);
         
-                    let dtStr = `'${dt.getFullYear()}-${dt.getMonth() + 1}-${dt.getDate()}'`;
+                    let dtStr = `${dt.getFullYear()}-${dt.getMonth() + 1}-${dt.getDate()}`;
                                 
                     if(Type.CastType(typeName!.toString()) == DBTypes.DATE)
                     {

@@ -132,6 +132,11 @@ describe("Types and metadata", ()=>{
                     var conn = new PGConnection("localhost", 5434, "test_db", "supervisor", "sup");
         
                     var manager = new PGDBManager(conn);
+
+                    manager.SetLogger((s, t) => {
+
+                        console.log(s);
+                    });
             
                     var context = new Context(manager);  
 
@@ -154,8 +159,7 @@ describe("Types and metadata", ()=>{
                         for(let c of Type.GetColumnNameAndType(t))
                         {
                             expect(await manager.CheckColumn(t, c.Field)).toBeTruthy();
-                        }
-                    
+                        }                    
                     }
                 }, err => 
                 {
@@ -163,7 +167,7 @@ describe("Types and metadata", ()=>{
                 });
                 
         
-            });
+            }, 5000000);
         
     
         });

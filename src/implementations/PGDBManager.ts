@@ -9,11 +9,13 @@ import SchemasDecorators from '../core/decorators/SchemasDecorators';
 import InvalidOperationException from '../core/exceptions/InvalidOperationException';
 import { DBTypes } from '../Index';
 import { RelationType } from '../core/enums/RelationType';
+import DBOperationLogHandler, { LogType } from '../core/objects/DBOperationLogHandler';
 
 
 export default class PGDBManager implements IDBManager
 {
     private _connection! : PGDBConnection;   
+    private _logger? : DBOperationLogHandler;
 
     public constructor(connection : PGDBConnection)
     {
@@ -22,6 +24,8 @@ export default class PGDBManager implements IDBManager
 
     public async CheckConnection(): Promise<boolean> {
         
+        this.Log("Checking connection", LogType.CHECKCONNECTION);
+
         try
         {
             await this._connection.Open();
@@ -42,6 +46,8 @@ export default class PGDBManager implements IDBManager
        
         return this.CreatePromisse<boolean>(async ()=>
         {
+            this.Log(`Checking database ${dababase}`, LogType.CHECKDATABASE);
+
             await this._connection.AsPostgres().Open();
 
             let result = await this._connection.Execute(`select * from pg_database where datname = '${dababase}'`);
@@ -53,6 +59,8 @@ export default class PGDBManager implements IDBManager
         
         return this.CreatePromisse<void>(async ()=>
         {
+            this.Log(`Creating database ${dababase}`, LogType.CREATEDATABASE);
+
             await this._connection.AsPostgres().Open();
 
             await this._connection.Execute(`create database ${dababase} with owner ${this._connection.UserName};`);            
@@ -61,8 +69,11 @@ export default class PGDBManager implements IDBManager
     public CheckTable(cTor : Function): Promise<boolean> {
 
         return this.CreatePromisse<boolean>(async ()=>
-        {
+        {           
+
             let table = Type.GetTableName(cTor);
+
+            this.Log(`Checking table ${table}`, LogType.CHECKTABLE);
 
             await this._connection.Open();
 
@@ -76,6 +87,8 @@ export default class PGDBManager implements IDBManager
         return this.CreatePromisse<void>(async ()=>
         {
             let table = Type.GetTableName(cTor);
+
+            this.Log(`Creating table ${table}`, LogType.CREATETABLE);
 
             await this._connection.Open();
 
@@ -91,6 +104,8 @@ export default class PGDBManager implements IDBManager
 
             let column = Type.GetColumnName(cTor, key);
 
+            this.Log(`Checking column ${table}.${column}`, LogType.CHECKCOLUMN);
+
             await this._connection.Open();
 
             let result = await this._connection.Execute(`select * from information_schema.columns where table_name = '${table}' and column_name = '${column}';`);
@@ -105,6 +120,8 @@ export default class PGDBManager implements IDBManager
             let table = Type.GetTableName(cTor);
 
             let column = Type.GetColumnName(cTor, key);
+
+            this.Log(`Creating column ${table}.${column}`, LogType.CHECKCOLUMN);
 
             let type = "";
 
@@ -166,6 +183,8 @@ export default class PGDBManager implements IDBManager
         return this.CreatePromisse<void>(async ()=>
         {
             
+            this.Log(`Checking entity ${cTor.name}`, LogType.CHECKENTITY);
+
             let table_name = Type.GetTableName(cTor);            
             
             if(table_name == undefined)
@@ -190,9 +209,11 @@ export default class PGDBManager implements IDBManager
     public async ExecuteNonQuery(query: string): Promise<void> {
 
         return this.CreatePromisse<void>(async ()=>
-        {           
+        {   
             await this._connection.Open();
 
+            this.Log(query, LogType.QUERY);
+            
             await this._connection.Execute(query);
             
         });
@@ -203,6 +224,8 @@ export default class PGDBManager implements IDBManager
         return this.CreatePromisse<void>(async ()=>
         {           
             await this._connection.Open();
+
+            this.Log(query, LogType.QUERY);
 
             return await this._connection.Execute(query);           
             
@@ -295,5 +318,12 @@ export default class PGDBManager implements IDBManager
         }
     }
      
+    public SetLogger(logger : DBOperationLogHandler) : void { this._logger = logger;}
+
+    private Log(message : string, type : LogType)
+    {
+        if(this._logger)
+            try{this._logger(message, type);}catch{}
+    }
 
 }
