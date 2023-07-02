@@ -189,6 +189,7 @@ export class JoinSelectable<T extends Object> implements IJoinSelectable<T>
     private _context : PGDBContext;
     private _stack : IUnion[] = [];
     private _onStatements : [string, string][] = [];
+    private _firstOrDefault : boolean = false;
     private _type : new (...args: any[]) => T;
     constructor(cT : new (...args: any[]) => T,  context : PGDBContext, stack : IUnion[], onStack : [string, string][])
     {
@@ -394,8 +395,39 @@ export class JoinSelectable<T extends Object> implements IJoinSelectable<T>
         PGSetHelper.InjectSQL<T>(selectedSideSet! as PGDBSet<T>, query);
         PGSetHelper.InjectWhere<T>(selectedSideSet! as PGDBSet<T>, where);
         
+        if(this._firstOrDefault)
+            selectedSideSet!.Limit(1);
+            
         return await selectedSideSet!.ToListAsync();        
         
+    }
+
+    public async FirstOrDefaultAsync(): Promise<T | undefined> {
+
+        this._firstOrDefault = true;
+
+        let d = await this.ToListAsync();
+
+        this.Reset();
+
+        if(d.length > 0)
+            return d[0];
+        
+        return undefined;
+    }
+
+    private Reset() : void
+    {
+        for(let i = 1; i < this._stack.length; i++)
+        {
+            let type = this._stack[i].Type as Function;
+            let set = this._context.Collection(type as {new (...args: any[]) : Object})! as PGDBSet<Object>;
+            set["Reset"]();
+        }
+
+        this._stack = [];
+        this._firstOrDefault = false;
+        this._onStatements = [];
     }
     
 }

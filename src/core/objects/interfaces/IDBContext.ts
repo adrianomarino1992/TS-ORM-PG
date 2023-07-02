@@ -25,6 +25,7 @@ export interface IJoiningQuery
 export interface IJoinSelectable<T>
 {
     ToListAsync() : Promise<T[]>;
+    FirstOrDefaultAsync() : Promise<T | undefined>;
     Join<K extends keyof T>(key : K) : IJoinSelectable<T>;
     OrderBy<K extends keyof T>(key : K) : IJoinSelectable<T>;    
     OrderDescendingBy<K extends keyof T>(key : K) : IJoinSelectable<T>;    
