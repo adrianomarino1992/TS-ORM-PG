@@ -22,7 +22,7 @@ describe("Query", ()=>{
         let fAdrianos = await context.Persons
                                      .WhereField("Name")
                                      .Constains("Adriano")
-                                     .AndLoadAll("MessagesReceived")
+                                     .LoadRelationOn("MessagesReceived")
                                      .ToListAsync();
 
         let adrianos = await context.Persons.Where(

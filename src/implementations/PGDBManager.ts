@@ -150,7 +150,7 @@ export default class PGDBManager implements IDBManager
                 let relatedKey = SchemasDecorators.ExtractPrimaryKey(subType!);
 
                 if(!relatedKey)
-                    throw new InvalidOperationException(`Can not determine the primary key of ${cTor.name}`); 
+                    throw new InvalidOperationException(`Can not determine the primary key of ${subType!.name}`); 
 
                 if(relation?.Relation == RelationType.ONE_TO_MANY || relation?.Relation == RelationType.MANY_TO_MANY)
                 {
@@ -281,7 +281,7 @@ export default class PGDBManager implements IDBManager
             }
             finally
             {
-                this._connection.Close();
+                await this._connection.Close();
             }
         });
     }
@@ -299,7 +299,7 @@ export default class PGDBManager implements IDBManager
             case "integer" : return "integer";
             case "number" : return "bigint";
             case "long" : return "bigint";
-            case "double" : return "double";
+            case "double" : return "float";
             case "text" : return "text";
             case "string" : return "text";
             case "date" : return "date";
@@ -313,7 +313,8 @@ export default class PGDBManager implements IDBManager
             case "string[]" : return "text[]";
             case "date[]" : return "date[]";
             case "datetime[]" : return "timestamp[]";
-            case "boolean[]" : return "boolean[]";            
+            case "boolean[]" : return "boolean[]";  
+            case "double[]" : return "float[]";          
             default: throw new TypeNotSuportedException(`The type ${type} is not suported`);
         }
     }

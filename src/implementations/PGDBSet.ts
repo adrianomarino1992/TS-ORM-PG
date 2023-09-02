@@ -126,6 +126,7 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
 
             
             let subTypesUpdates : string[] = [];
+            let updatableFields : string[] = [];
             for(let sub of subTypes)
             {
                 let relation = SchemasDecorators.GetRelationAttribute(this._type, sub.Field);
@@ -160,6 +161,8 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
                     throw new InvalidOperationException(`The type ${subType.name} must have a primary key column`);
                 }
 
+                let colletion = this._context.Collection(subType as {new (...args: any[]) : Object})!;
+
                 if(key != undefined){
                     for(let subKey of Type.GetProperties(subType))
                     {
@@ -172,28 +175,62 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
 
                             if(subRelation.Relation == RelationType.ONE_TO_MANY || subRelation.Relation == RelationType.MANY_TO_MANY)
                             {
+                                updatableFields.push(subKey);
+
                                 if(isArray)
                                 {
                                     for(let i of subObj as Array<typeof subType>)
                                     {
-                                        let value : any[] = ((Reflect.get(i, subKey) ?? []) as Array<typeof subType>).filter(s => (s as any)[subPK!] != (obj as any)[subPK!]);                                
+                                        if(i == undefined)
+                                            continue;
+
+                                        let metadata = Type.ExtractMetadata(i).filter(s => s.Field == subKey && s.Loaded);
+
+                                        let value : any[] = []; 
+
+                                        if(metadata.length > 0)
+                                        {
+                                            value = ((Reflect.get(i, subKey) ?? []) as Array<typeof subType>).filter(s => (s as any)[subPK!] != (obj as any)[subPK!]);  
+                                        }else
+                                        {
+                                            let item = await (colletion as any)["Where"]({Field : subPK, Value : Reflect.get(i, subPK)})["LoadRelationOn"](subKey)["FirstOrDefaultAsync"]();
+                                            value = item == undefined ? [] : item![subKey] as any[];
+                                        }
+
                                         value.push(obj);
+
                                         Reflect.set(i as any, subKey, value);
                                     }
                                 }else{
 
-                                    let value : any[] = ((Reflect.get(subObj, subKey) ?? []) as Array<typeof this._type>).filter(s => (s as any)[subPK!] != (obj as any)[subPK!]);                                
-                                    value.push(obj);
-                                    Reflect.set(subObj, subKey, value);
+                                    let metadata = Type.ExtractMetadata(subObj).filter(s => s.Field == subKey && s.Loaded);
 
+                                    let value : any[] = []; 
+
+                                    if(metadata.length > 0)
+                                    {
+                                        value = ((Reflect.get(subObj, subKey) ?? []) as Array<typeof this._type>).filter(s => (s as any)[subPK!] != (obj as any)[subPK!]);    
+                                    }else
+                                    {
+                                        let item = await (colletion as any)["Where"]({Field : subPK, Value : Reflect.get(subObj, subPK)})["LoadRelationOn"](subKey)["FirstOrDefaultAsync"]();
+
+                                        value = item == undefined ? [] : item![subKey] as any[];
+                                    }
+
+                                    value.push(obj);                                                                   
+                                    
+                                    Reflect.set(subObj, subKey, value);
                                 }
                                
                             }else{
 
-                                if(subRelation.Relation == RelationType.MANY_TO_ONE)
+                                if(subRelation.Relation == RelationType.MANY_TO_ONE && isArray)
                                 {
                                     for(let i of subObj as Array<typeof subType>)
-                                    {                                        
+                                    {         
+                                        if(i == undefined)
+                                            continue; 
+
                                         Reflect.set(i as any, subKey, obj);
                                     }
                                 }else{
@@ -207,32 +244,40 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
                         }
                     }
                 }
-
-                let colletion = this._context.Collection(subType as {new (...args: any[]) : Object})!;
+               
                 
                 if(isArray)
                 {
                     for(let i of subObj as Array<typeof subType>)
                     {
+                        if(i == undefined)
+                            continue;
+
                         if(!Type.HasValue(Reflect.get(i as any, subPK)))
                             await (colletion as PGDBSet<typeof subType>)["AddAsync"](i as any);
                         else 
-                            await (colletion as PGDBSet<typeof subType>)["UpdateObjectAsync"](i as any, false);
+                            await (colletion as PGDBSet<typeof subType>)["UpdateObjectAsync"](i as any, false, updatableFields);
                     }
                 }else{
+
+                    if(subObj == undefined)
+                        continue;
 
                     if(!Type.HasValue(Reflect.get(subObj as any, subPK)))
                         await (colletion as PGDBSet<typeof subType>)["AddAsync"](subObj as any);
                     else 
-                        await (colletion as PGDBSet<typeof subType>)["UpdateObjectAsync"](subObj as any, false);
+                        await (colletion as PGDBSet<typeof subType>)["UpdateObjectAsync"](subObj as any, false, updatableFields);
                 } 
                                
 
                 
                 let columnType = Type.CastType(Type.GetDesingTimeTypeName(subType, subPK)!);
 
-                if(relation?.Relation == RelationType.MANY_TO_MANY || relation?.Relation == RelationType.ONE_TO_MANY)
+                if(relation?.Relation == RelationType.MANY_TO_MANY || relation?.Relation == RelationType.ONE_TO_MANY || isArray)
                     columnType = Type.AsArray(columnType) as DBTypes;
+                
+                if(subObj == undefined)
+                    continue;
                 
                 let updateValues = [Reflect.get(subObj as any, subPK)];
 
@@ -242,6 +287,9 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
 
                     for(let i of subObj as Array<typeof subType>)
                     {
+                        if(i == undefined)
+                            continue;
+
                         updateValues.push(Reflect.get(i as any, subPK));
                     }
                 }
@@ -283,10 +331,12 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
     {
         return await this.UpdateObjectAsync(obj, false);
     }
-    private UpdateObjectAsync(obj : T, cascade? : boolean): Promise<T> {
+    private UpdateObjectAsync(obj : T, cascade? : boolean, fieldsAllowed? : string[]): Promise<T> {
         
         return this.CreatePromisse(async() => 
         {
+            fieldsAllowed = fieldsAllowed ?? [];
+
             if(!this.IsCorrectType(obj))
                 throw new InvalidOperationException(`The object passed as argument is not a ${this._type.name} instance`);
             
@@ -394,7 +444,7 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
                 let subPK = SchemasDecorators.ExtractPrimaryKey(subType);
 
                 let metadata = Type.ExtractMetadata(obj);
-                let meta = metadata.filter(s => s.Field == sub.Field);
+                let meta = metadata.filter(s => s.Field == sub.Field && s.Loaded);
 
                 if(meta.length > 0 && subObj == undefined)
                 {
@@ -404,6 +454,10 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
                     continue;
                 }           
                 
+                if(meta.length == 0 && fieldsAllowed.filter(s => s == sub.Field).length == 0)
+                    continue;
+                
+
                 if(subObj == undefined)
                     continue;
 
@@ -428,6 +482,9 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
                                 {
                                     for(let i of subObj as Array<typeof subType>)
                                     {
+                                        if(i == undefined)
+                                            continue;
+
                                         let value : any[] = ((Reflect.get(i, subKey) ?? []) as Array<typeof subType>).filter(s => (s as any)[subPK!] != (obj as any)[subPK!]);                                
                                         value.push(obj);
                                         Reflect.set(i as any, subKey, value);
@@ -439,7 +496,10 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
                                 if(subRelation.Relation == RelationType.MANY_TO_ONE)
                                 {
                                     for(let i of subObj as Array<typeof subType>)
-                                    {                                        
+                                    {           
+                                        if(i == undefined)
+                                            continue;  
+
                                         Reflect.set(i as any, subKey, obj);
                                     }
                                 }else{
@@ -461,16 +521,22 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
                 {
                     for(let i of subObj as Array<typeof subType>)
                     {
+                        if(i == undefined)
+                            continue;
+
                         if(!Type.HasValue(Reflect.get(i as any, subPK)))
                             await (colletion as PGDBSet<typeof subType>)["AddAsync"](i as any);
-                        else if(cascade)
+                        else if(cascade || fieldsAllowed.filter(s => s == sub.Field).length > 0)
                             await (colletion as PGDBSet<typeof subType>)["UpdateObjectAsync"](i as any, false);
                     }
                 }else{
 
+                    if(subObj == undefined)
+                        continue;
+
                     if(!Type.HasValue(Reflect.get(subObj as any, subPK)))
                         await (colletion as PGDBSet<typeof subType>)["AddAsync"](subObj as any);
-                    else if(cascade)
+                    else if(cascade || fieldsAllowed.filter(s => s == sub.Field).length > 0)
                         await (colletion as PGDBSet<typeof subType>)["UpdateObjectAsync"](subObj as any, false);
                 } 
                                
@@ -481,6 +547,9 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
                 if(relation?.Relation == RelationType.MANY_TO_MANY || relation?.Relation == RelationType.ONE_TO_MANY)
                     columnType = Type.AsArray(columnType) as DBTypes;
                     
+                    if(subObj == undefined)
+                        continue;
+
                     let updateValues = [Reflect.get(subObj as any, subPK)];
 
                     if(isArray)
@@ -489,6 +558,9 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
     
                         for(let i of subObj as Array<typeof subType>)
                         {
+                            if(i == undefined)
+                                continue;
+
                             updateValues.push(Reflect.get(i as any, subPK));
                         }
                     }
@@ -809,7 +881,7 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
         return this as any as R;
     }
 
-    AndLoadAll<U extends keyof T, R extends PGDBSet<T>>(field: U): R {   
+    public LoadRelationOn<U extends keyof T, R extends PGDBSet<T>>(field: U): R {   
 
         return this.Join(field) as any as R;        
     }
@@ -844,7 +916,11 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
         {
             return `$$${value}$$`;
 
-        }else if(Type.IsNumber(colType))
+        }else if(colType == DBTypes.BOOLEAN)
+        {
+            return `${value.toString().toLowerCase()}`;
+        }
+        else if(Type.IsNumber(colType))
         {
             if(isNaN(value))
                 throw new InvalidOperationException(`Can not cast the value "${value}" in a number`);

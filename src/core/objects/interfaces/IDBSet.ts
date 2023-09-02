@@ -26,7 +26,7 @@ export interface IFluentQueryableObject<T extends Object, R extends IDBSet<T>>
     WhereAsString(where : string) : R;
     AndField<K extends keyof T>(field : K) : IFluentField<T, K, R>
     OrField<K extends keyof T>(field : K) : IFluentField<T, K, R>
-    AndLoadAll<K extends keyof T>(field : K) : R;    
+    LoadRelationOn<K extends keyof T>(field : K) : R;    
 }
 
 
