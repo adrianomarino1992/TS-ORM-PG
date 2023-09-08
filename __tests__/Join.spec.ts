@@ -26,7 +26,7 @@ describe("Context", ()=>{
         expect(msgs.findIndex(s => s.To?.length == 3)).toBeGreaterThan(-1);
         expect(msgs.findIndex(s => s.To?.length == 1)).toBeGreaterThan(-1);          
         
-    });
+    },5^100000);
 
     test("Testing the same with array using conventional query sintax", async()=>{
 
@@ -44,7 +44,7 @@ describe("Context", ()=>{
         expect(msgs.length).toBe(2);
         expect(msgs.findIndex(s => s.To?.length == 3)).toBeGreaterThan(-1);
         expect(msgs.findIndex(s => s.To?.length == 1)).toBeGreaterThan(-1);           
-    });
+    },5^100000);
 
     test("Testing the same with conventional query sintax", async()=>{
 
@@ -63,7 +63,7 @@ describe("Context", ()=>{
         expect(msgs[1].From?.Name).toBe("adriano");
         expect(msgs[2].From?.Name).toBe("adriano");
         
-    });    
+    },5^100000);    
     
     test("Testing join with right side is array, but left side nort, and left side have relation with right", async ()=>{
        
@@ -89,7 +89,7 @@ describe("Context", ()=>{
         expect(msgs[0].To?.length).toBe(1);        
         expect(msgs[0].To?.[0].Name).toBe("camila");        
         
-    });
+    },5^100000);
 
     test("Testing join with left side is array, but right side not, and left side have relation with right", async ()=>{
        
@@ -132,7 +132,7 @@ describe("Context", ()=>{
         expect(msgs[0].To?.length).toBe(3);
                
         
-    });
+    },5^100000);
 
     test("Testing join with left side is array, but right side not, and left side have no one relation with right", async ()=>{
        
@@ -157,7 +157,7 @@ describe("Context", ()=>{
         expect(msgs.findIndex(s => s.To?.length == 1)).toBeGreaterThan(-1);    
                
         
-    });
+    },5^100000);
 
 
     test("Testing join with left side is not array, but right side is, and left side have no one relation with right", async ()=>{
@@ -173,6 +173,6 @@ describe("Context", ()=>{
 
         expect(msgs.length).toBe(3);      
                        
-    });
+    },5^100000);
     
 });

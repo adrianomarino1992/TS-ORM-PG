@@ -271,17 +271,25 @@ export default class PGDBManager implements IDBManager
     {
         return new Promise<T>(async (resolve, reject)=>{
 
+            let success = true;
+            let result : any;
             try
             {                
-                resolve(await func());
+                result = await func();
             }
             catch(err)
             {
-                reject(err);
+                success = false;
+                result = err;
             }
             finally
             {
                 await this._connection.Close();
+                
+                if(success)
+                    resolve(result);
+                else
+                    reject(result);
             }
         });
     }
