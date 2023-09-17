@@ -929,7 +929,12 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
 
         }else if(Type.IsDate(colType))
         { 
-            let dt : Date = value as unknown as Date;
+            let dt : Date | undefined; 
+
+            if(value.constructor == Date)
+                dt = value as unknown as Date;
+            else
+                dt = new Date(value.toString());
 
             if(!dt)
                 throw new InvalidOperationException(`Can not cast the value: "${value}" in a valid date`);
