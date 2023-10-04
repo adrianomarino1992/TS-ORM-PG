@@ -131,6 +131,21 @@ describe("Context", ()=>{
             await TruncatePersonTableAsync();
     
         });
+
+
+        test("Testing order by asc and offset", async ()=>{
+       
+            let context = await SeedAsync();
+            context.Collection(Person);
+            let all = await context.Persons.OrderBy('Name').Offset(1).Limit(2).ToListAsync();
+                                        
+            expect(all.length).toBe(2);             
+            expect(all[0].Name).toBe("Andre");   
+            expect(all[1].Name).toBe("Camila"); 
+            
+            await TruncatePersonTableAsync();
+    
+        });
         
     });
     

@@ -11,6 +11,8 @@ export default interface IDBSet<T extends Object>
     Or<K extends keyof T>(statement : IStatement<T, K>) : IDBSet<T>;
     OrderBy<K extends keyof T>(key : K) : IDBSet<T>;    
     OrderDescendingBy<K extends keyof T>(key : K) : IDBSet<T>;
+    Take(quantity : number) : IDBSet<T>;
+    Offset(offset : number) : IDBSet<T>;
     Join<K extends keyof T>(key : K) : IDBSet<T>;
     Limit(limit : number) : IDBSet<T>;
     CountAsync() : Promise<number>;

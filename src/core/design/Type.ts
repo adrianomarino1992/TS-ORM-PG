@@ -197,7 +197,7 @@ export default class Type
             case "string" : return DBTypes.TEXT;            
             case "object" : return DBTypes.CLASS;
 
-            default: throw new TypeNotSuportedException(`The type ${type} is not suported`);
+            default: throw new TypeNotSuportedException(`The type ${type} is not suported or is not mapped in this instance of PGContext`);
         }
     }
 }

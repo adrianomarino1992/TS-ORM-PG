@@ -29,6 +29,7 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
     private _ordering : IPGOrdenation<T>[] = [];
     private _includes: IPGIncluding<T>[] = []
     private _limit? : IPGLimiter;
+    private _offset? : IPGOffset;
     private _whereAsString? : string;
 
     constructor(cTor : { new(...args : any[]) : T}, context : PGDBContext)
@@ -728,6 +729,17 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
         return this;
     }  
 
+    public Offset(offset: number): IDBSet<T> {
+        
+        this._offset = offset >= 1 ? { OffSet : offset} : undefined;
+        return this;
+    }
+
+    public Take(quantity: number): IDBSet<T> {
+        
+        return this.Limit(quantity);
+    }
+
     public async CountAsync(): Promise<number> {
 
         return this.CreatePromisse(async () => 
@@ -757,6 +769,11 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
             if(this._ordering.length > 0)
             {
                 query += ` order by ${ordenation.substring(0, ordenation.length - 1)}`
+            }
+
+            if(this._offset != undefined)
+            {
+                query += ` offset ${this._offset.OffSet}`;
             }
             
             if(this._limit != undefined)
@@ -816,6 +833,11 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
                 query += ` order by ${ordenation.substring(0, ordenation.length - 1)}`
             }
             
+            if(this._offset != undefined)
+            {
+                query += ` offset ${this._offset.OffSet}`;
+            }
+
             if(this._limit != undefined)
             {
                 query += ` limit ${this._limit.Limit}`;
@@ -1388,6 +1410,12 @@ interface IPGLimiter
 {
     Limit : number
 }
+
+interface IPGOffset
+{
+    OffSet : number
+}
+
 
 enum OrderDirection
 {
