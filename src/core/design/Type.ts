@@ -61,6 +61,18 @@ export default class Type
         return Reflect.get(object, '_orm_metadata_') as Parameters<typeof Type.InjectMetadata>[1][] ?? [];       
     }
 
+    public static DeleteMetadata(object : any) : void
+    {
+        if("_orm_metadata_" in object)
+        {
+            
+        }
+
+        if(Reflect.has(object, "_orm_metadata_"))
+        {
+            delete object._orm_metadata_;
+        }        
+    }
 
     public static GetTableName(cTor : Function) : string 
     {

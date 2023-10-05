@@ -332,6 +332,13 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
     {
         return await this.UpdateObjectAsync(obj, false);
     }
+
+    public async UpdateObjectAndRelationsAsync(obj: T, relations: (keyof T)[]): Promise<T> {
+        
+        if(relations && relations.length > 0)
+            Type.ExtractMetadata
+    }
+
     private UpdateObjectAsync(obj : T, cascade? : boolean, fieldsAllowed? : string[]): Promise<T> {
         
         return this.CreatePromisse(async() => 
@@ -447,7 +454,7 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
                 let metadata = Type.ExtractMetadata(obj);
                 let meta = metadata.filter(s => s.Field == sub.Field && s.Loaded);
 
-                if(meta.length > 0 && subObj == undefined)
+                if((meta.length > 0 || fieldsAllowed.filter(s => s == sub.Field).length > 0) && subObj == undefined)
                 {
                     if(meta[0].Loaded)
                         subTypesUpdates.push(`"${sub.Column}" = null`);
