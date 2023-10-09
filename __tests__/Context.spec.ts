@@ -1,7 +1,7 @@
 
 import { Person } from './classes/TestEntity';
 import { Operation } from '../src/core/objects/interfaces/IStatement';
-import {TruncatePersonTableAsync, CreateContext, SeedAsync} from './TestFunctions';
+import {TruncatePersonTableAsync, CreateContext, SeedAsync, CompleteSeedAsync} from './TestFunctions';
 import { Message } from './classes/RelationEntity';
 
 
@@ -110,7 +110,7 @@ describe("Context", ()=>{
         test("Testing order by asc and desc", async ()=>{
        
             let context = await SeedAsync();
-            context.Collection(Person);
+            
             let all = await context.Persons.OrderBy('Name').ToListAsync();
                                         
             expect(all.length).toBe(4);
@@ -136,7 +136,7 @@ describe("Context", ()=>{
         test("Testing order by asc and offset", async ()=>{
        
             let context = await SeedAsync();
-            context.Collection(Person);
+            
             let all = await context.Persons.OrderBy('Name').Offset(1).Limit(2).ToListAsync();
                                         
             expect(all.length).toBe(2);             
@@ -191,6 +191,55 @@ describe("Context", ()=>{
 
             await TruncatePersonTableAsync();              
     
+        });
+
+        describe("Update relations", ()=>{
+
+            test("Updating only one field", async ()=>{
+        
+                let context = await CompleteSeedAsync();
+        
+                let message = await context.Messages
+                                        .Where({Field : "Message", Kind : Operation.CONSTAINS, Value : "from Adriano to"})
+                                        .Join("From")
+                                        .Join("To")
+                                        .FirstOrDefaultAsync();
+        
+                expect(message?.Message).toBe("Some message from Adriano to nobody");
+        
+                message!.From = await context.Persons.WhereField("Name").Constains("camila").FirstOrDefaultAsync()!;
+
+                await context.Messages.UpdateAsync(message!);
+
+                message = await context.Messages
+                                    .Where({Field : "Message", Kind : Operation.CONSTAINS, Value : "from Adriano to"})
+                                    .Join("From")
+                                    .Join("To")
+                                    .FirstOrDefaultAsync();
+
+                expect(message?.From?.Name).toBe("camila");
+
+                
+                message!.From = await context.Persons.WhereField("Name").Constains("adriano").FirstOrDefaultAsync()!;
+
+                expect(message?.From?.Name).toBe("adriano");
+
+                message!.To = [];
+
+                await context.Messages.UpdateObjectAndRelationsAsync(message!, ["From"]);
+
+                message = await context.Messages
+                                        .Where({Field : "Message", Kind : Operation.CONSTAINS, Value : "from Adriano to"})
+                                        .Join("From")
+                                        .Join("To")
+                                        .FirstOrDefaultAsync();
+                
+                expect(message?.From?.Name).toBe("adriano");
+                expect(message?.To?.length).not.toBe(0);
+
+                await TruncatePersonTableAsync();              
+        
+            }, 5^10000);
         });
     });
 

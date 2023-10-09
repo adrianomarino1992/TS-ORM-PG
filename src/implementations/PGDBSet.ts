@@ -196,6 +196,7 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
                                         {
                                             let item = await (colletion as any)["Where"]({Field : subPK, Value : Reflect.get(i, subPK)})["LoadRelationOn"](subKey)["FirstOrDefaultAsync"]();
                                             value = item == undefined ? [] : item![subKey] as any[];
+                                            value = value ?? [];
                                         }
 
                                         value.push(obj);
@@ -216,6 +217,8 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
                                         let item = await (colletion as any)["Where"]({Field : subPK, Value : Reflect.get(subObj, subPK)})["LoadRelationOn"](subKey)["FirstOrDefaultAsync"]();
 
                                         value = item == undefined ? [] : item![subKey] as any[];
+
+                                        value = value ?? [];
                                     }
 
                                     value.push(obj);                                                                   
@@ -334,9 +337,10 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
     }
 
     public async UpdateObjectAndRelationsAsync(obj: T, relations: (keyof T)[]): Promise<T> {
-        
-        if(relations && relations.length > 0)
-            Type.ExtractMetadata
+       
+        Type.DeleteMetadata(obj);
+
+        return this.UpdateObjectAsync(obj, false, relations ? relations.map(s => s.toString()) : []);
     }
 
     private UpdateObjectAsync(obj : T, cascade? : boolean, fieldsAllowed? : string[]): Promise<T> {
@@ -454,10 +458,9 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
                 let metadata = Type.ExtractMetadata(obj);
                 let meta = metadata.filter(s => s.Field == sub.Field && s.Loaded);
 
-                if((meta.length > 0 || fieldsAllowed.filter(s => s == sub.Field).length > 0) && subObj == undefined)
+                if(((meta.length > 0 && meta[0].Loaded) || fieldsAllowed.filter(s => s == sub.Field).length > 0) && subObj == undefined)
                 {
-                    if(meta[0].Loaded)
-                        subTypesUpdates.push(`"${sub.Column}" = null`);
+                    subTypesUpdates.push(`"${sub.Column}" = null`);
                         
                     continue;
                 }           
@@ -475,6 +478,9 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
                 }
 
                 if(key != undefined){
+
+                    let colletion = this._context.Collection(subType as {new (...args: any[]) : Object})!;
+
                     for(let subKey of Type.GetProperties(subType))
                     {
                         let subRelation = SchemasDecorators.GetRelationAttribute(subType, subKey);
@@ -493,10 +499,62 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
                                         if(i == undefined)
                                             continue;
 
-                                        let value : any[] = ((Reflect.get(i, subKey) ?? []) as Array<typeof subType>).filter(s => (s as any)[subPK!] != (obj as any)[subPK!]);                                
-                                        value.push(obj);
-                                        Reflect.set(i as any, subKey, value);
+                                        let subFKTypeIsArray = Type.GetDesingType(subType, subKey) == Array; 
+                                        if(subFKTypeIsArray)
+                                        {
+                                            let value : any[] = []; 
+
+                                            let subMeta = Type.ExtractMetadata(i);
+
+                                            if(subMeta.length > 0 && subMeta.filter(s => s.Field == subKey && s.Loaded).length > 0)
+                                            {
+                                                value = ((Reflect.get(i, subKey) ?? []) as Array<typeof subType>).filter(s => (s as any)[subPK!] != (obj as any)[subPK!]);  
+
+                                            }else
+                                            {
+                                                let item = await (colletion as any)["Where"]({Field : subPK, Value : Reflect.get(i, subPK)})["LoadRelationOn"](subKey)["FirstOrDefaultAsync"]();
+                                                value = item == undefined ? [] : item![subKey] as any[];
+                                                value = value ?? [];
+                                            }
+
+                                            value.push(obj);
+
+                                            Reflect.set(i as any, subKey, value);
+
+                                        }else{
+                                            Reflect.set(i as any, subKey, obj);
+                                        }
+
+                                       
                                     }
+                                }else{
+
+                                        let subFKTypeIsArray = Type.GetDesingType(subType, subKey) == Array; 
+                                        if(subFKTypeIsArray)
+                                        {
+                                            let value : any[] = []; 
+
+                                            let subMeta = Type.ExtractMetadata(subObj);
+
+                                            if(subMeta.length > 0 && subMeta.filter(s => s.Field == subKey && s.Loaded).length > 0)
+                                            {
+                                                value = ((Reflect.get(subObj, subKey) ?? []) as Array<typeof subType>).filter(s => (s as any)[subPK!] != (obj as any)[subPK!]);  
+                                            }else
+                                            {
+                                                let item = await (colletion as any)["Where"]({Field : subPK, Value : Reflect.get(subObj, subPK)})["LoadRelationOn"](subKey)["FirstOrDefaultAsync"]();
+                                                value = item == undefined ? [] : item![subKey] as any[];
+                                                value = value ?? [];
+                                            }
+
+                                            value.push(obj);
+
+                                            Reflect.set(subObj as any, subKey, value);
+
+                                        }else{
+                                            Reflect.set(subObj as any, subKey, obj);
+                                        }
+
+                                    
                                 }
                                
                             }else{

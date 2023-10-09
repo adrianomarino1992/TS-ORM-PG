@@ -62,12 +62,7 @@ export default class Type
     }
 
     public static DeleteMetadata(object : any) : void
-    {
-        if("_orm_metadata_" in object)
-        {
-            
-        }
-
+    {       
         if(Reflect.has(object, "_orm_metadata_"))
         {
             delete object._orm_metadata_;
