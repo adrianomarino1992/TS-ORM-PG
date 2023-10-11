@@ -751,13 +751,9 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
         
         return this.CreatePromisse(async()=>{
 
-            let whereSrt = PGSetHelper.ExtractWhereData(this);
-            let sqlSrt = PGSetHelper.ExtractSQLData(this);
+            let whereSrt = PGSetHelper.ExtractWhereData(this);          
 
-            let query = `delete from "${this._table}"`;  
-            
-            if(sqlSrt && sqlSrt.toLowerCase().trim().startsWith(`select distinct "${this._table}".*`))
-                query = sqlSrt;
+            let query = `delete from "${this._table}"`; 
 
             if(!whereSrt){
 
@@ -1104,6 +1100,10 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
             catch(err)
             {
                 reject(err);
+            }
+            finally
+            {
+                this.Reset();
             }            
         });
     }
@@ -1572,7 +1572,7 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
 
 class PGSetValue<T>
 {
-    private _sets : any[]= [];
+    private _sets : {Key : keyof T, Value : T[keyof T]}[]= [];
 
     public Add<K extends keyof T>(key : K, value : T[K]) : void
     {
@@ -1588,10 +1588,9 @@ class PGSetValue<T>
         }
     }
 
-    public Get() : {Key : string, Value : any}[]
+    public Get() : {Key : keyof T, Value : T[keyof T]}[]
     {
-
-        return [];
+        return this._sets;       
     }
 }
 
