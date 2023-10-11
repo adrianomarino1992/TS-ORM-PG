@@ -338,6 +338,26 @@ let person = await context.Persons.Where({
 await context.Persons.DeleteAsync(person);
 ```
 
+# Delete or update many regiters
+## DeleteSelectionAsync
+```typescript 
+ await context.Persons.Where({
+                                Field : 'Age',                                                 
+                                Value : 20
+                                })
+                      .DeleteSelectionAsync();
+```
+
+## UpdateSelectionAsync
+```typescript 
+ await context.Persons.Set('Age', 30)
+                      .Where({
+                                Field : 'Age',                                                 
+                                Value : 20
+                                })
+                      .DeleteSelectionAsync();
+```
+
 
 # Fluent query methods
 
