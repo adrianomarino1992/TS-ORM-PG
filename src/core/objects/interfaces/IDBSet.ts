@@ -5,8 +5,11 @@ export default interface IDBSet<T extends Object>
 {
     AddAsync(obj : T) : Promise<T>;
     UpdateAsync(obj : T) : Promise<T>;
+    UpdateSelectionAsync() : Promise<void>;
+    Set<K extends keyof T>(key: K, value : T[K]) : IDBSet<T>;
     UpdateObjectAndRelationsAsync(obj : T, relations : (keyof T)[]) : Promise<T>;
     DeleteAsync(obj : T) : Promise<T>;
+    DeleteSelectionAsync() : Promise<void>;
     Where<K extends keyof T>(statement : IStatement<T, K>) : IDBSet<T>;
     And<K extends keyof T>(statement : IStatement<T, K>) : IDBSet<T>;
     Or<K extends keyof T>(statement : IStatement<T, K>) : IDBSet<T>;

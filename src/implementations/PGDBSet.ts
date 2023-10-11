@@ -30,6 +30,7 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
     private _includes: IPGIncluding<T>[] = []
     private _limit? : IPGLimiter;
     private _offset? : IPGOffset;
+    private _set : PGSetValue<T>;
     private _whereAsString? : string;
 
     constructor(cTor : { new(...args : any[]) : T}, context : PGDBContext)
@@ -40,6 +41,7 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
         this._maps = Type.GetColumnNameAndType(cTor);
         this._manager = context["_manager"];
         this._context = context;
+        this._set = new PGSetValue<T>();
     }
        
 
@@ -331,6 +333,83 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
         });              
     }
 
+    UpdateSelectionAsync(): Promise<void> {
+        
+        return this.CreatePromisse(async() => 
+        {
+            if(!this._set || this._set.Get().length == 0)
+                throw new InvalidOperationException('Can not realize a update with no one set operation before');
+
+            let setters = this._set.Get();   
+          
+            let update = `update "${this._table}" set`;
+
+            let values = "";          
+
+            for(let map of this._maps)
+            {
+                let set = setters.filter(s => s.Key == map.Field);
+
+                if(set.length == 0)
+                    continue;
+
+                let designType = Type.GetDesingType(this._type, map.Field);
+                let relation = SchemasDecorators.GetRelationAttribute(this._type, map.Field);
+
+                if((designType && this._context.IsMapped(designType)) || (relation && this._context.IsMapped(relation.TypeBuilder())))
+                    continue;
+
+                let colType = Type.CastType(map.Type);
+
+                if(SchemasDecorators.IsPrimaryKey(this._type, map.Field))
+                    continue;               
+
+                values += `"${map.Column}" = ${this.CreateValueStatement(colType, set[0].Value)},`;
+
+            }
+            
+            update = `${update} ${values.substring(0, values.length - 1)}`;
+
+            let whereSrt = PGSetHelper.ExtractWhereData(this);
+                
+            if(!whereSrt){
+
+                if(this._whereAsString != undefined && this._statements.length > 0)
+                {
+                    throw new InvalidOperationException("Is not possible combine free and structured queries");
+                }
+
+                if(this._whereAsString != undefined)
+                {
+                    update += ` ${this._whereAsString} `;                
+                }
+
+                update += this.EvaluateWhere();
+
+            }else
+            {
+                update += whereSrt;
+            }              
+
+            await this._manager.ExecuteNonQuery(update);
+        });
+        
+        
+    }
+
+    Set<K extends keyof T>(key: K, value: T[K]): IDBSet<T> {       
+        
+        let designType = Type.GetDesingType(this._type, key.toString());
+        let relation = SchemasDecorators.GetRelationAttribute(this._type, key.toString());
+
+        if((designType && this._context.IsMapped(designType)) || (relation && this._context.IsMapped(relation.TypeBuilder())))
+            throw new InvalidOperationException('Can not realize a mass update in fields that has relations with another table');  
+                
+        this._set.Add(key, value);
+
+        return this;
+    }
+
     public async UpdateAsync(obj : T) : Promise<T>
     {
         return await this.UpdateObjectAsync(obj, false);
@@ -343,11 +422,11 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
         return this.UpdateObjectAsync(obj, false, relations ? relations.map(s => s.toString()) : []);
     }
 
-    private UpdateObjectAsync(obj : T, cascade? : boolean, fieldsAllowed? : string[]): Promise<T> {
+    private UpdateObjectAsync(obj : T, cascade? : boolean, relationsAllowed? : string[], fieldsAllowed? : string[]): Promise<T> {
         
         return this.CreatePromisse(async() => 
         {
-            fieldsAllowed = fieldsAllowed ?? [];
+            relationsAllowed = relationsAllowed ?? [];
 
             if(!this.IsCorrectType(obj))
                 throw new InvalidOperationException(`The object passed as argument is not a ${this._type.name} instance`);
@@ -413,6 +492,9 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
                     continue;
                 }
 
+                if(fieldsAllowed && fieldsAllowed.filter(s => s == map.Column).length == 0)
+                    continue;
+
                 values += `"${map.Column}" = ${this.CreateValueStatement(colType, Reflect.get(obj, map.Field))},`;
 
             }
@@ -427,8 +509,24 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
             await this._manager.ExecuteNonQuery(update);
             
             let subTypesUpdates : string[] = [];
+
             for(let sub of subTypes)
             {
+                let subObj = Reflect.get(obj, sub.Field);
+
+                let metadata = Type.ExtractMetadata(obj);
+                let meta = metadata.filter(s => s.Field == sub.Field && s.Loaded);
+
+                if(((meta.length > 0 && meta[0].Loaded) || relationsAllowed.filter(s => s == sub.Field).length > 0) && subObj == undefined)
+                {
+                    subTypesUpdates.push(`"${sub.Column}" = null`);
+                        
+                    continue;
+                }           
+                
+                if(meta.length == 0 && relationsAllowed.filter(s => s == sub.Field).length == 0)
+                    continue;
+
                 let relation = SchemasDecorators.GetRelationAttribute(this._type, sub.Field);
                 let subType = Type.GetDesingType(this._type, sub.Field)!;
 
@@ -450,24 +548,9 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
                     subType = relation?.TypeBuilder();
                 }
 
-                let subObj = Reflect.get(obj, sub.Field);
                 
-
                 let subPK = SchemasDecorators.ExtractPrimaryKey(subType);
 
-                let metadata = Type.ExtractMetadata(obj);
-                let meta = metadata.filter(s => s.Field == sub.Field && s.Loaded);
-
-                if(((meta.length > 0 && meta[0].Loaded) || fieldsAllowed.filter(s => s == sub.Field).length > 0) && subObj == undefined)
-                {
-                    subTypesUpdates.push(`"${sub.Column}" = null`);
-                        
-                    continue;
-                }           
-                
-                if(meta.length == 0 && fieldsAllowed.filter(s => s == sub.Field).length == 0)
-                    continue;
-                
 
                 if(subObj == undefined)
                     continue;
@@ -592,7 +675,7 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
 
                         if(!Type.HasValue(Reflect.get(i as any, subPK)))
                             await (colletion as PGDBSet<typeof subType>)["AddAsync"](i as any);
-                        else if(cascade || fieldsAllowed.filter(s => s == sub.Field).length > 0)
+                        else if(cascade || relationsAllowed.filter(s => s == sub.Field).length > 0)
                             await (colletion as PGDBSet<typeof subType>)["UpdateObjectAsync"](i as any, false);
                     }
                 }else{
@@ -602,7 +685,7 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
 
                     if(!Type.HasValue(Reflect.get(subObj as any, subPK)))
                         await (colletion as PGDBSet<typeof subType>)["AddAsync"](subObj as any);
-                    else if(cascade || fieldsAllowed.filter(s => s == sub.Field).length > 0)
+                    else if(cascade || relationsAllowed.filter(s => s == sub.Field).length > 0)
                         await (colletion as PGDBSet<typeof subType>)["UpdateObjectAsync"](subObj as any, false);
                 } 
                                
@@ -663,6 +746,43 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
         });
 
     }
+
+    DeleteSelectionAsync(): Promise<void> {
+        
+        return this.CreatePromisse(async()=>{
+
+            let whereSrt = PGSetHelper.ExtractWhereData(this);
+            let sqlSrt = PGSetHelper.ExtractSQLData(this);
+
+            let query = `delete from "${this._table}"`;  
+            
+            if(sqlSrt && sqlSrt.toLowerCase().trim().startsWith(`select distinct "${this._table}".*`))
+                query = sqlSrt;
+
+            if(!whereSrt){
+
+                if(this._whereAsString != undefined && this._statements.length > 0)
+                {
+                    throw new InvalidOperationException("Is not possible combine free and structured queries");
+                }
+
+                if(this._whereAsString != undefined)
+                {
+                    query += ` ${this._whereAsString} `;                
+                }
+
+                query += this.EvaluateWhere();
+
+            }else
+            {
+                query += whereSrt;
+            }              
+
+            await this._manager.ExecuteNonQuery(query);
+
+        });
+    }
+
     DeleteAsync(obj : T): Promise<T> {
         return this.CreatePromisse(async() => 
         {
@@ -1254,7 +1374,8 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
     {       
         this._ordering = [];
         this._includes = [];
-        this._limit = undefined;       
+        this._limit = undefined;  
+        this._set = new PGSetValue<T>();     
         this.ResetFilters();
     }
 
@@ -1449,6 +1570,31 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
     
 }
 
+class PGSetValue<T>
+{
+    private _sets : any[]= [];
+
+    public Add<K extends keyof T>(key : K, value : T[K]) : void
+    {
+        let i = this._sets.filter(s => s.Key == key);
+
+        if(i.length > 0)
+        {
+            i[0].Value = value;
+        }
+        else
+        {
+            this._sets.push({Key : key, Value : value});
+        }
+    }
+
+    public Get() : {Key : string, Value : any}[]
+    {
+
+        return [];
+    }
+}
+
 interface IPGStatement
 {
     StatementType : StatementType;
@@ -1465,6 +1611,7 @@ interface IPGOrdenation<T>
     Field : keyof T,
     Order : OrderDirection
 }
+
 
 interface IPGIncluding<T>
 {
