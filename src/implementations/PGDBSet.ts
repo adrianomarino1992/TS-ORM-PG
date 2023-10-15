@@ -1163,10 +1163,10 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
             let elementType = Type.ExtractElementType(colType);
             let hasItens = false;
 
-            for(let i in value)
+            for(let i of value)
             {   
                 hasItens = true;
-                valuesStr += `${this.CreateValueStatement(elementType, value[i])},`;
+                valuesStr += `${this.CreateValueStatement(elementType, i)},`;
             }
 
             if(hasItens)
