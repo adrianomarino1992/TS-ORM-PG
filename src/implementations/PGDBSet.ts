@@ -819,9 +819,7 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
             return obj;
         });
     }
-    Where<K extends keyof T>(statement : IStatement<T, K>): IDBSet<T> {
-
-        this.ResetFilters();
+    Where<K extends keyof T>(statement : IStatement<T, K>): IDBSet<T> {       
        
        this._statements.push(
         {
@@ -1191,7 +1189,7 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
                 throw new InvalidOperationException(`The query three must start with a WHERE statement`);
                 
             if(i > 0 && where.StatementType == StatementType.WHERE)
-            where.StatementType = StatementType.AND;
+                where.StatementType = StatementType.AND;
 
             query += ` ${where.StatementType} ${this.EvaluateStatement(where)} `;
         }  

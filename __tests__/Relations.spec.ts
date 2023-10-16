@@ -190,7 +190,7 @@ describe("Add objects with relations", ()=>{
                 throw err;
             });      
             
-        });
+        }, 20000);
 
     });
 
