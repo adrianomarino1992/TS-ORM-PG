@@ -431,36 +431,41 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
                                 
                             if(!Type.HasValue(Reflect.get(i as any, subPK)))
                                 await (colletion as PGDBSet<typeof subType>)["AddAsync"](i as any);
-                            else if(relation)
+
+                            if(relation)
+                            {
+                                let subRelation : typeof relation | undefined;
+                                
+                                for(let c of Type.GetColumnNameAndType(subType))
                                 {
-                                    let columnName = Type.GetColumnNameAndType(subType).filter(s => s.Field == relation?.Field)[0];
-                                    let tableName = Type.GetTableName(subType); 
-                                    let pkColumn = Type.GetColumnNameAndType(subType).filter(s => s.Field == subPK)[0];                               
-                                    let query =`select ${columnName.Column} from ${tableName} where "${pkColumn.Column}" = ${this.CreateValueStatement(Type.CastType(pkColumn.Type), Reflect.get(i as any, subPK))}`;
-                                    let values = await this._manager.Execute(query);
-                                    
-                                    if(values.rows && values.rows.lenght > 0)
-                                    {
-                                        let v = values.rows[0][columnName.Column];
-        
-                                        if(v.constructor == Array)
-                                        {
-                                            let thisPK = SchemasDecorators.ExtractPrimaryKey(this._type);
-                                            let thisPKColumn = Type.GetColumnNameAndType(this._type).filter(s => s.Field == thisPK)[0];                                    
-                                            let thisQuery = `select ${thisPKColumn.Column} from ${this._table} ${whereSrt} `;
-                                            let thisValues = await this._manager.Execute(thisQuery);
-        
-                                            if(thisValues.rows && thisValues.rows.length > 0)
-                                            {
-                                                for(let vi of thisValues.rows)
-                                                    v.push(vi);
-                                            }
-                                            
-                                            let subUpdate = `update ${tableName} set ${columnName.Column} = ${this.CreateValueStatement(Type.CastType(columnName.Type), v)} where "${pkColumn.Column}" = ${this.CreateValueStatement(Type.CastType(pkColumn.Type), Reflect.get(i as any, subPK))}`;
-                                            await this._manager.ExecuteNonQuery(subUpdate);
-                                        }
+                                    let r = SchemasDecorators.GetRelationAttribute(subType, c.Field);
+                                        
+                                    if(r && r.Field == set[0].Key && r.TypeBuilder() == this._type){
+                                        subRelation = r;
+                                        break;
                                     }
                                 }
+                                    
+                                if(subRelation && (subRelation.Relation == RelationType.ONE_TO_MANY || subRelation?.Relation == RelationType.MANY_TO_MANY)){
+        
+                                    let subDesingType = Type.GetDesingType(subType, relation.Field!);
+                                        
+                                    if(subDesingType == Array)
+                                    {
+                                        let subColumnName = Type.GetColumnNameAndType(subType).filter(s => s.Field == relation?.Field)[0];
+                                        let subTableName = Type.GetTableName(subType); 
+                                        let subPkColumn = Type.GetColumnNameAndType(subType).filter(s => s.Field == subPK)[0];
+        
+                                        let queryAllpks = `(select array_agg(${pkColumn.Column}) from ${this._table} ${whereSrt})`
+            
+                                        let subUpdate = `update ${subTableName} set ${subColumnName.Column} =  ${subColumnName.Column} || ${queryAllpks}  where "${subPkColumn.Column}" = ${this.CreateValueStatement(Type.CastType(subPkColumn.Type), Reflect.get(i as any, subPK))}`;
+                                            
+                                        await this._manager.ExecuteNonQuery(subUpdate);   
+                                    }                                                             
+                                        
+                                }                                        
+                                    
+                            }
                         }
                     }else{
         
@@ -486,36 +491,21 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
                             
                             if(subRelation && (subRelation.Relation == RelationType.ONE_TO_MANY || subRelation?.Relation == RelationType.MANY_TO_MANY)){
 
-                                let columnName = Type.GetColumnNameAndType(subType).filter(s => s.Field == relation?.Field)[0];
-                                let tableName = Type.GetTableName(subType); 
-                                let pkColumn = Type.GetColumnNameAndType(subType).filter(s => s.Field == subPK)[0];                               
-                                let query =`select ${columnName.Column} from ${tableName} where "${pkColumn.Column}" = ${this.CreateValueStatement(Type.CastType(pkColumn.Type), Reflect.get(set[0].Value as any, subPK))}`;
-                                let values = await this._manager.Execute(query);
+                                let subDesingType = Type.GetDesingType(subType, relation.Field!);
                                 
-                                if(values.rows && values.rows.length > 0)
+                                if(subDesingType == Array)
                                 {
-                                    let v = values.rows[0][columnName.Column];
+                                    let subColumnName = Type.GetColumnNameAndType(subType).filter(s => s.Field == relation?.Field)[0];
+                                    let subTableName = Type.GetTableName(subType); 
+                                    let subPkColumn = Type.GetColumnNameAndType(subType).filter(s => s.Field == subPK)[0];
 
-                                    if(v.constructor == Array)
-                                    {
-                                        let thisPK = SchemasDecorators.ExtractPrimaryKey(this._type);
-                                        let thisPKColumn = Type.GetColumnNameAndType(this._type).filter(s => s.Field == thisPK)[0];                                    
-                                        let thisQuery = `select ${thisPKColumn.Column} from ${this._table} ${whereSrt} `;
-                                        let thisValues = await this._manager.Execute(thisQuery);
-
-                                        if(thisValues.rows && thisValues.rows.lenght > 0)
-                                        {
-                                            for(let vi of thisValues.rows)
-                                                v.push(vi);
-                                        }
-                                        
-                                        let queryAllpks = `(select array_agg(${pkColumn.Column}) from ${this._table} ${whereSrt})`
-
-                                        let subUpdate = `update ${tableName} set ${columnName.Column} = ${this.CreateValueStatement(Type.CastType(columnName.Type), v)} || ${queryAllpks}  where "${pkColumn.Column}" = ${this.CreateValueStatement(Type.CastType(pkColumn.Type), Reflect.get(set[0].Value as any, subPK))}`;
-                                        
-                                        await this._manager.ExecuteNonQuery(subUpdate);
-                                    }
-                                }
+                                    let queryAllpks = `(select array_agg(${pkColumn.Column}) from ${this._table} ${whereSrt})`
+    
+                                    let subUpdate = `update ${subTableName} set ${subColumnName.Column} =  ${subColumnName.Column} || ${queryAllpks}  where "${subPkColumn.Column}" = ${this.CreateValueStatement(Type.CastType(subPkColumn.Type), Reflect.get(set[0].Value as any, subPK))}`;
+                                    
+                                    await this._manager.ExecuteNonQuery(subUpdate);   
+                                }                                                             
+                                
                             }
                                 
                             
@@ -1414,17 +1404,8 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
 
                 let internalType = Type.CastType(elementType!);
 
-                let keyType = DBTypes.LONGARRAY;
-
-                if(Type.IsNumber(internalType))
-                    keyType = DBTypes.LONGARRAY;
-                else if(Type.IsText(internalType))
-                    keyType = DBTypes.TEXTARRAY;
-                else if(Type.IsDate(internalType))
-                    keyType = DBTypes.DATEARRAY;
-                else 
-                    throw new InvalidOperationException(`Can not determine the correct type conversion for propety ${pgStatement.Statement.Field.toString()}`);
-                    
+                let keyType = Type.AsArray(internalType);
+               
                 let newValues : any[] = [];
 
                 for(let e of pgStatement.Statement.Value)

@@ -17,7 +17,7 @@ describe("Mass operations", ()=>{
         for(let c of all)
             expect(c.Age).toBe(30);             
         
-    });   
+    },500000);   
 
     test("Testing a mass update in some lines of table", async ()=>{
        
@@ -39,7 +39,7 @@ describe("Mass operations", ()=>{
         
         expect(all.length).not.toBe(withA.length);       
         
-    });     
+    }, 500000);     
     
     test("Testing a mass update with mapped objets in some lines of table", async ()=>{
        
@@ -48,6 +48,11 @@ describe("Mass operations", ()=>{
         let person = await context.Persons.FirstOrDefaultAsync();
 
         await context.Messages.Set('From', person).UpdateSelectionAsync();
+
+        person = await context.Persons
+                                .Where({Field : "Id", Value : person?.Id!})
+                                .Join("MessagesWriten")
+                                .FirstOrDefaultAsync();
         
         let all = await context.Messages.Join("From").ToListAsync(); 
 
@@ -55,10 +60,41 @@ describe("Mass operations", ()=>{
         {
             expect(c.From?.Name).toBe(person!.Name); 
             expect(c.From?.Id).toBe(person!.Id); 
-        }  
+            expect(person?.MessagesWriten!.filter(s => s.Id == c.Id).length! > 0).toBeTruthy();
+        }         
                       
         
     }, 500000);  
+
+
+    test("Testing a mass update with mapped objets in many to many relation", async ()=>{
+       
+        let context = await CompleteSeedAsync();
+
+        let person = await context.Persons
+                                  .Join("MessagesReceived")
+                                  .FirstOrDefaultAsync();
+
+        await context.Messages.Set('To', [person!]).UpdateSelectionAsync();
+
+        person = await context.Persons
+                                .Where({Field : "Id", Value : person?.Id!})
+                                .Join("MessagesReceived")
+                                .FirstOrDefaultAsync();
+        
+        let all = await context.Messages.Join("To").ToListAsync(); 
+
+        for(let c of all)
+        {
+            expect(c.To).toBeDefined(); 
+            expect(c.To![0].Name).toBe(person!.Name); 
+            expect(c.To![0].Id).toBe(person!.Id); 
+            expect(person?.MessagesReceived!.filter(s => s.Id == c.Id).length! > 0).toBeTruthy();
+        }         
+                      
+        
+    }, 500000);  
+
 
     
     describe("Delete some lines", ()=>{   
@@ -74,7 +110,7 @@ describe("Mass operations", ()=>{
             expect(all.length).toBe(2);     
             expect(all.filter(s => s.Name.indexOf("a") == 0).length).toBe(0)  
             
-        });  
+        },500000);  
     });
     
 });

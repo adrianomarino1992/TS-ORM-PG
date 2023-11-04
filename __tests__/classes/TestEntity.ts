@@ -42,7 +42,7 @@ export class Person
     public MessagesWriten? : Message[];
 
     @Column()
-    @OneToMany(()=> Message, "To")
+    @ManyToMany(()=> Message, "To")
     public MessagesReceived? : Message[];
 
     

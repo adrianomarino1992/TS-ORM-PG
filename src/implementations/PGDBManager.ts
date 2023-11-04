@@ -163,7 +163,7 @@ export default class PGDBManager implements IDBManager
                 
 
                 if(type == DBTypes.SERIAL)
-                    type = this.CastToPostgreSQLType(DBTypes.LONG);
+                    type = this.CastToPostgreSQLType(DBTypes.INTEGER);
                 
             }
             

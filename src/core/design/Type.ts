@@ -38,7 +38,7 @@ export default class Type
     {
 
         if(type == "serial")
-            return DBTypes.LONGARRAY;
+            return DBTypes.INTEGERARRAY;
 
         if(type.endsWith("[]"))
             return type;
@@ -131,7 +131,7 @@ export default class Type
 
     public static IsArray(dbType : string)
     {
-        switch(dbType.toLocaleLowerCase())
+        switch(dbType.toLowerCase())
         {
             case DBTypes.INTEGERARRAY : return true;
             case DBTypes.TEXTARRAY : return true;            
@@ -146,12 +146,12 @@ export default class Type
 
     public static ExtractElementType(dbType : string)
     {
-       return dbType.toLocaleLowerCase().toString().replace('[]', '') as DBTypes;
+       return dbType.toLowerCase().toString().replace('[]', '') as DBTypes;
     }
 
     public static IsDate(dbType : string)
     {
-        switch(dbType.toLocaleLowerCase())
+        switch(dbType.toLowerCase())
         {
             case DBTypes.DATE : return true;
             case DBTypes.DATETIME : return true;            
@@ -162,7 +162,7 @@ export default class Type
 
     public static IsNumber(dbType : string)
     {
-        switch(dbType.toLocaleLowerCase())
+        switch(dbType.toLowerCase())
         {
             case DBTypes.LONG : return true;
             case DBTypes.SERIAL : return true;
@@ -175,7 +175,7 @@ export default class Type
 
     public static IsText(dbType : string)
     {
-        switch(dbType.toLocaleLowerCase())
+        switch(dbType.toLowerCase())
         {
             case DBTypes.TEXT : return true;            
         }
