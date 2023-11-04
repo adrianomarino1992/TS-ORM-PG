@@ -347,7 +347,32 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
           
             let update = `update "${this._table}" set`;
 
-            let values = "";          
+            let values = "";    
+            
+            let whereSrt = PGSetHelper.ExtractWhereData(this);
+                
+            if(!whereSrt){
+
+                if(this._whereAsString != undefined && this._statements.length > 0)
+                {
+                    throw new InvalidOperationException("Is not possible combine free and structured queries");
+                }
+
+                if(this._whereAsString != undefined)
+                {
+                    whereSrt = ` ${this._whereAsString} `;                
+                }
+
+                whereSrt = this.EvaluateWhere();
+
+            }        
+
+            let PK = SchemasDecorators.ExtractPrimaryKey(this._type);
+
+            if(!PK)
+                throw new InvalidOperationException(`The type ${this._type.name} must have a primary key field`);
+
+            let pkColumn = Type.GetColumnNameAndType(this._type).filter(s => s.Field == PK)[0];
 
             for(let map of this._maps)
             {
@@ -395,6 +420,7 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
                     
                     
                     let colletion = this._context.Collection(subType as {new (...args: any[]) : Object})!;
+                    
 
                     if(isArray)
                     {
@@ -405,6 +431,36 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
                                 
                             if(!Type.HasValue(Reflect.get(i as any, subPK)))
                                 await (colletion as PGDBSet<typeof subType>)["AddAsync"](i as any);
+                            else if(relation)
+                                {
+                                    let columnName = Type.GetColumnNameAndType(subType).filter(s => s.Field == relation?.Field)[0];
+                                    let tableName = Type.GetTableName(subType); 
+                                    let pkColumn = Type.GetColumnNameAndType(subType).filter(s => s.Field == subPK)[0];                               
+                                    let query =`select ${columnName.Column} from ${tableName} where "${pkColumn.Column}" = ${this.CreateValueStatement(Type.CastType(pkColumn.Type), Reflect.get(i as any, subPK))}`;
+                                    let values = await this._manager.Execute(query);
+                                    
+                                    if(values.rows && values.rows.lenght > 0)
+                                    {
+                                        let v = values.rows[0][columnName.Column];
+        
+                                        if(v.constructor == Array)
+                                        {
+                                            let thisPK = SchemasDecorators.ExtractPrimaryKey(this._type);
+                                            let thisPKColumn = Type.GetColumnNameAndType(this._type).filter(s => s.Field == thisPK)[0];                                    
+                                            let thisQuery = `select ${thisPKColumn.Column} from ${this._table} ${whereSrt} `;
+                                            let thisValues = await this._manager.Execute(thisQuery);
+        
+                                            if(thisValues.rows && thisValues.rows.length > 0)
+                                            {
+                                                for(let vi of thisValues.rows)
+                                                    v.push(vi);
+                                            }
+                                            
+                                            let subUpdate = `update ${tableName} set ${columnName.Column} = ${this.CreateValueStatement(Type.CastType(columnName.Type), v)} where "${pkColumn.Column}" = ${this.CreateValueStatement(Type.CastType(pkColumn.Type), Reflect.get(i as any, subPK))}`;
+                                            await this._manager.ExecuteNonQuery(subUpdate);
+                                        }
+                                    }
+                                }
                         }
                     }else{
         
@@ -413,6 +469,57 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
 
                         if(!Type.HasValue(Reflect.get(set[0].Value as any, subPK)))
                             await (colletion as PGDBSet<typeof subType>)["AddAsync"](set[0].Value as any);
+                        
+                        if(relation)
+                        {
+                            let subRelation : typeof relation | undefined;
+
+                            for(let c of Type.GetColumnNameAndType(subType))
+                            {
+                                let r = SchemasDecorators.GetRelationAttribute(subType, c.Field);
+
+                                if(r && r.Field == set[0].Key && r.TypeBuilder() == this._type){
+                                    subRelation = r;
+                                    break;
+                                }
+                            }
+                            
+                            if(subRelation && (subRelation.Relation == RelationType.ONE_TO_MANY || subRelation?.Relation == RelationType.MANY_TO_MANY)){
+
+                                let columnName = Type.GetColumnNameAndType(subType).filter(s => s.Field == relation?.Field)[0];
+                                let tableName = Type.GetTableName(subType); 
+                                let pkColumn = Type.GetColumnNameAndType(subType).filter(s => s.Field == subPK)[0];                               
+                                let query =`select ${columnName.Column} from ${tableName} where "${pkColumn.Column}" = ${this.CreateValueStatement(Type.CastType(pkColumn.Type), Reflect.get(set[0].Value as any, subPK))}`;
+                                let values = await this._manager.Execute(query);
+                                
+                                if(values.rows && values.rows.length > 0)
+                                {
+                                    let v = values.rows[0][columnName.Column];
+
+                                    if(v.constructor == Array)
+                                    {
+                                        let thisPK = SchemasDecorators.ExtractPrimaryKey(this._type);
+                                        let thisPKColumn = Type.GetColumnNameAndType(this._type).filter(s => s.Field == thisPK)[0];                                    
+                                        let thisQuery = `select ${thisPKColumn.Column} from ${this._table} ${whereSrt} `;
+                                        let thisValues = await this._manager.Execute(thisQuery);
+
+                                        if(thisValues.rows && thisValues.rows.lenght > 0)
+                                        {
+                                            for(let vi of thisValues.rows)
+                                                v.push(vi);
+                                        }
+                                        
+                                        let queryAllpks = `(select array_agg(${pkColumn.Column}) from ${this._table} ${whereSrt})`
+
+                                        let subUpdate = `update ${tableName} set ${columnName.Column} = ${this.CreateValueStatement(Type.CastType(columnName.Type), v)} || ${queryAllpks}  where "${pkColumn.Column}" = ${this.CreateValueStatement(Type.CastType(pkColumn.Type), Reflect.get(set[0].Value as any, subPK))}`;
+                                        
+                                        await this._manager.ExecuteNonQuery(subUpdate);
+                                    }
+                                }
+                            }
+                                
+                            
+                        }
                     }                    
 
                     let columnType = Type.CastType(Type.GetDesingTimeTypeName(subType, subPK)!);
@@ -454,26 +561,7 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
             
             update = `${update} ${values.substring(0, values.length - 1)}`;
 
-            let whereSrt = PGSetHelper.ExtractWhereData(this);
-                
-            if(!whereSrt){
-
-                if(this._whereAsString != undefined && this._statements.length > 0)
-                {
-                    throw new InvalidOperationException("Is not possible combine free and structured queries");
-                }
-
-                if(this._whereAsString != undefined)
-                {
-                    update += ` ${this._whereAsString} `;                
-                }
-
-                update += this.EvaluateWhere();
-
-            }else
-            {
-                update += whereSrt;
-            }              
+            update += " " + whereSrt;                 
 
             await this._manager.ExecuteNonQuery(update);
         });
@@ -481,13 +569,7 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
         
     }
 
-    Set<K extends keyof T>(key: K, value: T[K]): IDBSet<T> {       
-        
-        let designType = Type.GetDesingType(this._type, key.toString());
-        let relation = SchemasDecorators.GetRelationAttribute(this._type, key.toString());
-
-        if((designType && this._context.IsMapped(designType)) || (relation && this._context.IsMapped(relation.TypeBuilder())))
-            throw new InvalidOperationException('Can not realize a mass update in fields that has relations with another table');  
+    Set<K extends keyof T>(key: K, value: T[K]): IDBSet<T> {     
                 
         this._set.Add(key, value);
 
