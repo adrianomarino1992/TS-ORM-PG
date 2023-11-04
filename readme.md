@@ -338,7 +338,7 @@ let person = await context.Persons.Where({
 await context.Persons.DeleteAsync(person);
 ```
 
-# Delete or update many regiters
+# Delete or update many registers
 ## DeleteSelectionAsync
 ```typescript 
  await context.Persons.Where({
@@ -468,7 +468,7 @@ export class Person
     public MessagesWriten? : Message[];
 
     @Column()
-    @OneToMany(()=> Message, "To")
+    @ManyToMany(()=> Message, "To")
     public MessagesReceived? : Message[];
 
   
