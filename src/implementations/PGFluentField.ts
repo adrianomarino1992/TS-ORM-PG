@@ -1,9 +1,10 @@
+import AbstractFluentField from "../core/objects/abstract/AbstractFluentField";
 import { IFluentField } from "../core/objects/interfaces/IDBSet";
 import {Operation} from "../core/objects/interfaces/IStatement";
 import PGDBSet from "./PGDBSet";
 
 
-export default class PGFluentField<T extends object, K extends keyof T, P extends PGDBSet<T>> implements IFluentField<T, K, P>
+export default class PGFluentField<T extends object, K extends keyof T, P extends PGDBSet<T>> extends AbstractFluentField<T, K, P>
 {
     private _pgSet : P;
     private _field : keyof T;
@@ -12,6 +13,7 @@ export default class PGFluentField<T extends object, K extends keyof T, P extend
 
     constructor(pgSet : P, field : keyof T, isOr : boolean = false)
     {
+        super();
         this._pgSet = pgSet;
         this._field = field;
         this._isOr = isOr;

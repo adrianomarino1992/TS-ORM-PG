@@ -1,10 +1,10 @@
 import pg  from 'pg';
 
-import IDBConnection from "../core/objects/interfaces/IDBConnection";
 import ConnectionFailException from "../core/exceptions/ConnectionFailException";
 import QueryFailException from "../core/exceptions/QueryFailException";
+import AbstractConnection from '../core/objects/abstract/AbstractConnection';
 
-export default class PGDBConnection implements IDBConnection
+export default class PGDBConnection extends AbstractConnection
 {
     public HostName!: string;
     public Port!: number;
@@ -17,6 +17,7 @@ export default class PGDBConnection implements IDBConnection
 
     constructor(host : string, port : number, dababase : string, user : string, pass : string)
     {        
+        super();
         this.HostName = host;
         this.Port = port;
         this.DataBaseName = dababase;

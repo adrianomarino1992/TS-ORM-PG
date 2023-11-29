@@ -3,14 +3,15 @@ import SchemasDecorators from "../core/decorators/SchemasDecorators";
 import Type from "../core/design/Type";
 import ConstraintFailException from "../core/exceptions/ConstraintFailException";
 import InvalidOperationException from "../core/exceptions/InvalidOperationException";
-import IDBContext, {IThreeQueryableObject,IJoiningQuery, IJoinSelectable} from "../core/objects/interfaces/IDBContext";
+import AbstractContext from "../core/objects/abstract/AbstractContext";
+import {IJoiningQuery, IJoinSelectable} from "../core/objects/interfaces/IDBContext";
 import IDBSet from "../core/objects/interfaces/IDBSet";
 import IStatement from "../core/objects/interfaces/IStatement";
 import PGDBManager from "./PGDBManager";
 import PGDBSet from "./PGDBSet";
 import PGSetHelper from "./PGSetHelper";
 
-export default abstract class PGDBContext implements IDBContext , IThreeQueryableObject
+export default abstract class PGDBContext extends AbstractContext
 {
     protected _manager :PGDBManager;    
 
@@ -18,6 +19,7 @@ export default abstract class PGDBContext implements IDBContext , IThreeQueryabl
 
     constructor(manager : PGDBManager)
     {
+        super();
         this._manager = manager;  
     }      
     

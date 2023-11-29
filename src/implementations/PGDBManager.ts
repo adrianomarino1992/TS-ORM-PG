@@ -1,8 +1,6 @@
 import 'reflect-metadata';
 import TypeNotSuportedException from '../core/exceptions/TypeNotSuportedException';
 
-
-import IDBManager from '../core/objects/interfaces/IDBManager';
 import Type from '../core/design/Type';
 import PGDBConnection from './PGDBConnection';
 import SchemasDecorators from '../core/decorators/SchemasDecorators';
@@ -10,15 +8,17 @@ import InvalidOperationException from '../core/exceptions/InvalidOperationExcept
 import { DBTypes } from '../Index';
 import { RelationType } from '../core/enums/RelationType';
 import DBOperationLogHandler, { LogType } from '../core/objects/DBOperationLogHandler';
+import AbstractManager from '../core/objects/abstract/AbstractManager';
 
 
-export default class PGDBManager implements IDBManager
+export default class PGDBManager extends AbstractManager
 {
     private _connection! : PGDBConnection;   
     private _logger? : DBOperationLogHandler;
 
     public constructor(connection : PGDBConnection)
     {
+        super();
         this._connection = connection;
     }
 

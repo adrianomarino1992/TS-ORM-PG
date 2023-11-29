@@ -15,9 +15,10 @@ import { RelationType } from "../core/enums/RelationType";
 import ConstraintFailException from "../core/exceptions/ConstraintFailException";
 import PGFluentField from "./PGFluentField";
 import PGSetHelper from "./PGSetHelper";
+import AbstractSet from "../core/objects/abstract/AbastractSet";
 
 
-export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQueryableObject<T, PGDBSet<T>>
+export default class PGDBSet<T extends Object>  extends AbstractSet<T>
 {
     
     private _type! : {new (...args : any[]) : T};    
@@ -35,7 +36,7 @@ export default class PGDBSet<T extends Object>  implements IDBSet<T> , IFluentQu
 
     constructor(cTor : { new(...args : any[]) : T}, context : PGDBContext)
     {
-        
+        super();
         this._type = cTor;
         this._table = Type.GetTableName(cTor);
         this._maps = Type.GetColumnNameAndType(cTor);
