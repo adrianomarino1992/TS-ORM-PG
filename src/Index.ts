@@ -5,6 +5,23 @@ import PGDBContext from "./implementations/PGDBContext";
 import PGDBManager from "./implementations/PGDBManager";
 import PGDBSet from "./implementations/PGDBSet";
 
+import QueryFailException from "./core/exceptions/QueryFailException";
+import NotImpletedException from "./core/exceptions/NotImplementedException";
+import TypeNotMappedException from "./core/exceptions/TypeNotMappedException";
+import ConnectionFailException from "./core/exceptions/ConnectionFailException";
+import ConstraintFailException from "./core/exceptions/ConstraintFailException";    
+import TypeNotSuportedException from "./core/exceptions/TypeNotSuportedException";
+import InvalidOperationException from "./core/exceptions/InvalidOperationException";
+
+
+export {ConnectionFailException}
+export {ConstraintFailException}
+export {InvalidOperationException}
+export {NotImpletedException}
+export {QueryFailException}
+export {TypeNotMappedException}
+export {TypeNotSuportedException};
+
 
 export {DBTypes};
 export {PGDBConnection}
