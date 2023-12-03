@@ -7,3 +7,5 @@ export default class TypeNotSuportedException extends Exception
         super(message);
     }
 }
+
+

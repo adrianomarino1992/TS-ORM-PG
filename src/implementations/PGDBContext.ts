@@ -3,6 +3,7 @@ import SchemasDecorators from "../core/decorators/SchemasDecorators";
 import Type from "../core/design/Type";
 import ConstraintFailException from "../core/exceptions/ConstraintFailException";
 import InvalidOperationException from "../core/exceptions/InvalidOperationException";
+import TypeNotMappedException from "../core/exceptions/TypeNotMappedException";
 import AbstractContext from "../core/objects/abstract/AbstractContext";
 import {IJoiningQuery, IJoinSelectable} from "../core/objects/interfaces/IDBContext";
 import IDBSet from "../core/objects/interfaces/IDBSet";
@@ -49,7 +50,8 @@ export default abstract class PGDBContext extends AbstractContext
         return this.GetMappedTypes().filter(t => t == type).length > 0;
     }
 
-    public Collection<T extends Object>(cTor  : {new (...args : any[]) : T}): IDBSet<T> | undefined {
+    public Collection<T extends Object>(cTor  : {new (...args : any[]) : T}): IDBSet<T> 
+    {
 
         for(let prop of Object.keys(this))
         {
@@ -61,7 +63,7 @@ export default abstract class PGDBContext extends AbstractContext
                 return (this as any)[prop] as IDBSet<T>;
         }
 
-        return undefined
+        throw new TypeNotMappedException(`${cTor.name} is not mapped in this context`);
     }
 
     public async UpdateDatabaseAsync(): Promise<void> {
