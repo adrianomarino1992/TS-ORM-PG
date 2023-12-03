@@ -1,14 +1,15 @@
+import {AbstractManager} from 'myorm_core';
+
+
 import 'reflect-metadata';
 import TypeNotSuportedException from '../core/exceptions/TypeNotSuportedException';
-
 import Type from '../core/design/Type';
 import PGDBConnection from './PGDBConnection';
 import SchemasDecorators from '../core/decorators/SchemasDecorators';
 import InvalidOperationException from '../core/exceptions/InvalidOperationException';
 import { DBTypes } from '../Index';
 import { RelationType } from '../core/enums/RelationType';
-import DBOperationLogHandler, { LogType } from '../core/objects/DBOperationLogHandler';
-import AbstractManager from '../core/objects/abstract/AbstractManager';
+import DBOperationLogHandler, { LogType } from '../core/handlers/DBOperationLogHandler';
 
 
 export default class PGDBManager extends AbstractManager

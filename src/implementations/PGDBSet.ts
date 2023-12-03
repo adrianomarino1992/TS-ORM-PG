@@ -1,10 +1,8 @@
-import IDBSet, {IFluentField, IFluentQueryableObject} from "../core/objects/interfaces/IDBSet";
+import {IStatement, Operation, IDBSet, IFluentField, AbstractSet} from "myorm_core";
+
+
 import Type from "../core/design/Type";
 import { DBTypes } from "../core/enums/DBTypes";
-
-import IStatement from "../core/objects/interfaces/IStatement";
-import { Operation } from "../core/objects/interfaces/IStatement";
-
 import SchemasDecorators from "../core/decorators/SchemasDecorators";
 import PGDBManager from "./PGDBManager";
 import NotImpletedException from "../core/exceptions/NotImplementedException";
@@ -15,7 +13,7 @@ import { RelationType } from "../core/enums/RelationType";
 import ConstraintFailException from "../core/exceptions/ConstraintFailException";
 import PGFluentField from "./PGFluentField";
 import PGSetHelper from "./PGSetHelper";
-import AbstractSet from "../core/objects/abstract/AbastractSet";
+
 
 
 export default class PGDBSet<T extends Object>  extends AbstractSet<T>

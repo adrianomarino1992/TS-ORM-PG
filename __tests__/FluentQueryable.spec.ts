@@ -1,6 +1,6 @@
 
 import { Person } from './classes/TestEntity';
-import { Operation } from '../src/core/objects/interfaces/IStatement';
+import { Operation } from 'myorm_core';
 import {TruncatePersonTableAsync, CreateContext, SeedAsync} from './TestFunctions';
 import Type from '../src/core/design/Type';
 

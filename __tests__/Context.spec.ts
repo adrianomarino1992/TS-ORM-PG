@@ -1,8 +1,9 @@
 
 import { Person } from './classes/TestEntity';
-import { Operation } from '../src/core/objects/interfaces/IStatement';
+import { Operation } from 'myorm_core';
 import {TruncatePersonTableAsync, CreateContext, SeedAsync, CompleteSeedAsync} from './TestFunctions';
 import { Message } from './classes/RelationEntity';
+import TypeNotMappedException from '../src/core/exceptions/TypeNotMappedException';
 
 
 
@@ -26,17 +27,26 @@ describe("Context", ()=>{
 
     test("Testing access some collection", async ()=>{
 
+        expect.assertions(3);
+
         let context = CreateContext();
 
         let collection = context.Collection(Person);
 
-        let fail  = context.Collection(String);
+        try
+        {
+            let fail  = context.Collection(String);
+        }
+        catch(e)
+        {
+            expect(e instanceof TypeNotMappedException).toBeTruthy();
+        }
 
         expect(collection).not.toBeNull();
 
         expect(collection).toBe(context.Persons);
 
-        expect(fail).toBe(undefined);
+       
         
     });
     

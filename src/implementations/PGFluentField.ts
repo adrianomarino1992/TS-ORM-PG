@@ -1,6 +1,5 @@
-import AbstractFluentField from "../core/objects/abstract/AbstractFluentField";
-import { IFluentField } from "../core/objects/interfaces/IDBSet";
-import {Operation} from "../core/objects/interfaces/IStatement";
+import { IFluentField, AbstractFluentField, Operation } from "myorm_core";
+
 import PGDBSet from "./PGDBSet";
 
 

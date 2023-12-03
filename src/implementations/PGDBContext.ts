@@ -1,13 +1,11 @@
-import { DBTypes } from "../Index";
+import {IStatement, AbstractContext, IJoiningQuery, IJoinSelectable, IDBSet} from "myorm_core";
+
+
 import SchemasDecorators from "../core/decorators/SchemasDecorators";
 import Type from "../core/design/Type";
 import ConstraintFailException from "../core/exceptions/ConstraintFailException";
 import InvalidOperationException from "../core/exceptions/InvalidOperationException";
 import TypeNotMappedException from "../core/exceptions/TypeNotMappedException";
-import AbstractContext from "../core/objects/abstract/AbstractContext";
-import {IJoiningQuery, IJoinSelectable} from "../core/objects/interfaces/IDBContext";
-import IDBSet from "../core/objects/interfaces/IDBSet";
-import IStatement from "../core/objects/interfaces/IStatement";
 import PGDBManager from "./PGDBManager";
 import PGDBSet from "./PGDBSet";
 import PGSetHelper from "./PGSetHelper";

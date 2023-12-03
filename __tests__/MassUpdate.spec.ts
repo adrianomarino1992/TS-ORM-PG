@@ -1,5 +1,5 @@
 
-import { Operation } from '../src/core/objects/interfaces/IStatement';
+import { Operation } from 'myorm_core';
 import {CompleteSeedAsync, TruncateTablesAsync} from './TestFunctions';
 import { Person } from './classes/TestEntity';
 

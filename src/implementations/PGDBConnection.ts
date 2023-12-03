@@ -2,7 +2,7 @@ import pg  from 'pg';
 
 import ConnectionFailException from "../core/exceptions/ConnectionFailException";
 import QueryFailException from "../core/exceptions/QueryFailException";
-import AbstractConnection from '../core/objects/abstract/AbstractConnection';
+import {AbstractConnection} from 'myorm_core';
 
 export default class PGDBConnection extends AbstractConnection
 {

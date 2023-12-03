@@ -1,5 +1,5 @@
 import { Person } from './classes/TestEntity';
-import { Operation } from '../src/core/objects/interfaces/IStatement';
+import { Operation } from 'myorm_core';
 import { TryAsync , TruncateTablesAsync, CreateContext } from './TestFunctions';
 import { Message } from './classes/RelationEntity';
 
