@@ -1,4 +1,4 @@
-import {IStatement, AbstractContext, IJoiningQuery, IJoinSelectable, IDBSet} from "myorm_core";
+import {IStatement, AbstractContext, IJoiningQuery, IJoinSelectable, IDBSet, AbstractSet} from "myorm_core";
 
 
 import SchemasDecorators from "../core/decorators/SchemasDecorators";
@@ -48,7 +48,7 @@ export default abstract class PGDBContext extends AbstractContext
         return this.GetMappedTypes().filter(t => t == type).length > 0;
     }
 
-    public Collection<T extends Object>(cTor  : {new (...args : any[]) : T}): IDBSet<T> 
+    public Collection<T extends Object>(cTor  : {new (...args : any[]) : T}): AbstractSet<T> 
     {
 
         for(let prop of Object.keys(this))
@@ -58,7 +58,7 @@ export default abstract class PGDBContext extends AbstractContext
             if(type == undefined)
                 continue;
             if(type == cTor)
-                return (this as any)[prop] as IDBSet<T>;
+                return (this as any)[prop] as AbstractSet<T>;
         }
 
         throw new TypeNotMappedException(`${cTor.name} is not mapped in this context`);

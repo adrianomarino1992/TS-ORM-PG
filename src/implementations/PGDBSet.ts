@@ -558,7 +558,7 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
         
     }
 
-    Set<K extends keyof T>(key: K, value: T[K]): IDBSet<T> {     
+    Set<K extends keyof T>(key: K, value: T[K]): AbstractSet<T> {     
                 
         this._set.Add(key, value);
 
@@ -978,7 +978,7 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
             return obj;
         });
     }
-    Where<K extends keyof T>(statement : IStatement<T, K>): IDBSet<T> {       
+    Where<K extends keyof T>(statement : IStatement<T, K>): AbstractSet<T> {       
        
        this._statements.push(
         {
@@ -994,7 +994,7 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
         return this;
     }
 
-    And<K extends keyof T>(statement : IStatement<T, K>): IDBSet<T> {
+    And<K extends keyof T>(statement : IStatement<T, K>): AbstractSet<T> {
 
         this._statements.push(
             {
@@ -1010,7 +1010,7 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
             return this;
     }
 
-    Or<K extends keyof T>(statement : IStatement<T, K>): IDBSet<T> {
+    Or<K extends keyof T>(statement : IStatement<T, K>): AbstractSet<T> {
 
         this._statements.push(
         {
@@ -1026,7 +1026,7 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
         return this;
     }
     
-    OrderBy<K extends keyof T>(key : K): IDBSet<T> {
+    OrderBy<K extends keyof T>(key : K): AbstractSet<T> {
        
         this._ordering.push(
             {
@@ -1038,7 +1038,7 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
 
     }
 
-    Join<K extends keyof T>(key : K): IDBSet<T> {
+    Join<K extends keyof T>(key : K): AbstractSet<T> {
        
         this._includes.push(
             {
@@ -1049,7 +1049,7 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
 
     }
 
-    OrderDescendingBy<K extends keyof T>(key : K): IDBSet<T> {
+    OrderDescendingBy<K extends keyof T>(key : K): AbstractSet<T> {
        
         this._ordering.push(
             {
@@ -1061,19 +1061,19 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
 
     }
 
-    Limit(limit : number): IDBSet<T> {
+    Limit(limit : number): AbstractSet<T> {
 
         this._limit = limit >= 1 ? { Limit : limit} : undefined; 
         return this;
     }  
 
-    public Offset(offset: number): IDBSet<T> {
+    public Offset(offset: number): AbstractSet<T> {
         
         this._offset = offset >= 1 ? { OffSet : offset} : undefined;
         return this;
     }
 
-    public Take(quantity: number): IDBSet<T> {
+    public Take(quantity: number): AbstractSet<T> {
         
         return this.Limit(quantity);
     }

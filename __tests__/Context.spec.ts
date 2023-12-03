@@ -2,7 +2,6 @@
 import { Person } from './classes/TestEntity';
 import { Operation } from 'myorm_core';
 import {TruncatePersonTableAsync, CreateContext, SeedAsync, CompleteSeedAsync} from './TestFunctions';
-import { Message } from './classes/RelationEntity';
 import TypeNotMappedException from '../src/core/exceptions/TypeNotMappedException';
 
 

@@ -1,7 +1,6 @@
 
 import { Operation } from 'myorm_core';
 import {CompleteSeedAsync, TruncateTablesAsync} from './TestFunctions';
-import { Person } from './classes/TestEntity';
 
 
 describe("Mass operations", ()=>{    

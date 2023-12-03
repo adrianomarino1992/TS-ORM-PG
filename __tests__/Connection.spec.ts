@@ -1,5 +1,4 @@
 import { PGDBManager } from "../src/Index";
-import ConnectionFailException from "../src/core/exceptions/ConnectionFailException";
 import InvalidOperationException from "../src/core/exceptions/InvalidOperationException";
 import PGConnection from "../src/implementations/PGDBConnection";
 import Context from "./classes/TestContext";
