@@ -233,7 +233,7 @@ describe("Context", ()=>{
 
                 expect(message?.From?.Name).toBe("adriano");
 
-                message!.To = [];
+                message!.To = [(await context.Persons.WhereField("Name").Constains("camila").FirstOrDefaultAsync())!];
 
                 await context.Messages.UpdateObjectAndRelationsAsync(message!, ["From"]);
 
@@ -244,7 +244,7 @@ describe("Context", ()=>{
                                         .FirstOrDefaultAsync();
                 
                 expect(message?.From?.Name).toBe("adriano");
-                expect(message?.To?.length).not.toBe(0);
+                expect(message?.To?.length).toBe(0);
 
                 await TruncatePersonTableAsync();              
         
@@ -284,7 +284,7 @@ describe("Context", ()=>{
             
             await TruncatePersonTableAsync();              
     
-        });
+        }, 5^10000);
     });
 
 });

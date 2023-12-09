@@ -1661,28 +1661,32 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
                             let values = Reflect.get(row, map.Column);
 
                             if(!values || values.length == 0)
-                                continue;
-
-                            colletion.Where({
-                                Field : subKey as keyof typeof type, 
-                                Kind : Operation.EQUALS, 
-                                Value : values[0] as typeof type[keyof typeof type & string]
-                            });
-
-                            for(let i = 0; i < values.length; i++)
                             {
-                                if(i == 0)
-                                    continue;
+                                Reflect.set(instance, map.Field, []);
 
-                                colletion.Or({
+                            }else{
+
+                                colletion.Where({
                                     Field : subKey as keyof typeof type, 
                                     Kind : Operation.EQUALS, 
-                                    Value : values[i] as typeof type[keyof typeof type & string]
+                                    Value : values[0] as typeof type[keyof typeof type & string]
                                 });
-                            }
-
-                            let subObjets = await colletion.ToListAsync();
-                            Reflect.set(instance, map.Field, subObjets);
+    
+                                for(let i = 0; i < values.length; i++)
+                                {
+                                    if(i == 0)
+                                        continue;
+    
+                                    colletion.Or({
+                                        Field : subKey as keyof typeof type, 
+                                        Kind : Operation.EQUALS, 
+                                        Value : values[i] as typeof type[keyof typeof type & string]
+                                    });
+                                }
+    
+                                let subObjets = await colletion.ToListAsync();
+                                Reflect.set(instance, map.Field, subObjets);
+                            }                            
 
                         }else{
 
