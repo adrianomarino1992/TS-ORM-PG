@@ -823,33 +823,34 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
 
                 let colletion = this._context.Collection(subType as {new (...args: any[]) : Object})!;
                 
-                if (hasToUpdateSubobject) 
+               
+                if(isArray)
                 {
-                    if(isArray)
+
+
+                    for(let i of subObj as Array<typeof subType>)
                     {
-                        for(let i of subObj as Array<typeof subType>)
-                        {
-                            if(i == undefined)
-                                continue;
-    
-                            if(!Type.HasValue(Reflect.get(i as any, subPK)))
-                                await (colletion as PGDBSet<typeof subType>)["AddAsync"](i as any);
-                            else if(cascade || relationsAllowed.filter(s => s == sub.Field).length > 0)
-                                await (colletion as PGDBSet<typeof subType>)["UpdateObjectAsync"](i as any, false);
-                        }
-                    }else{
-    
-                        if(subObj == undefined)
+                        if(i == undefined)
                             continue;
     
-                        if(!Type.HasValue(Reflect.get(subObj as any, subPK)))
-                            await (colletion as PGDBSet<typeof subType>)["AddAsync"](subObj as any);
-                        else if(cascade || relationsAllowed.filter(s => s == sub.Field).length > 0)
-                            await (colletion as PGDBSet<typeof subType>)["UpdateObjectAsync"](subObj as any, false);
-                    } 
-                }                               
+                        if(!Type.HasValue(Reflect.get(i as any, subPK)))
+                            await (colletion as PGDBSet<typeof subType>)["AddAsync"](i as any);
+                        else if(hasToUpdateSubobject && (cascade || relationsAllowed.filter(s => s == sub.Field).length > 0))
+                            await (colletion as PGDBSet<typeof subType>)["UpdateObjectAsync"](i as any, false);
+                    }
 
-                
+
+                }else{
+    
+                    if(subObj == undefined)
+                        continue;
+    
+                    if(!Type.HasValue(Reflect.get(subObj as any, subPK)))
+                        await (colletion as PGDBSet<typeof subType>)["AddAsync"](subObj as any);
+                    else if(hasToUpdateSubobject && (cascade || relationsAllowed.filter(s => s == sub.Field).length > 0))
+                        await (colletion as PGDBSet<typeof subType>)["UpdateObjectAsync"](subObj as any, false);
+                } 
+                                    
                 let columnType = Type.CastType(Type.GetDesingTimeTypeName(subType, subPK)!);
 
                 if(relation?.Relation == RelationType.MANY_TO_MANY || relation?.Relation == RelationType.ONE_TO_MANY)

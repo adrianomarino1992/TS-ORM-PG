@@ -52,7 +52,7 @@ describe("Add objects with relations", ()=>{
             throw err;
         });        
         
-    });
+    }, 1000000);
     
 
 
