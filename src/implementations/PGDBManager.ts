@@ -280,14 +280,26 @@ export default class PGDBManager extends AbstractManager
 
             if(!await this.CheckTableAsync(cTor))
                 await this.CreateTableAsync(cTor);
+
+            let columns = Type.GetProperties(cTor);
             
-            for(let column of Type.GetProperties(cTor))
+            for(let column of columns)
             {
                 if(!await this.CheckColumnAsync(cTor, column))
                 {
                     await this.CreateColumnAsync(cTor, column);
+                }else
+                {
+                    let type = this.GetTypeOfColumn(cTor, column);
+
+                    let dbType = await this.CheckColumnTypeAsync(cTor, column);
+
+                    if(type.trim().toLowerCase() != dbType.trim().toLowerCase())
+                    {
+                        await this.ChangeColumnTypeAsync(cTor, column);
+                    }                    
                 }
-            }            
+            }              
         });
 
     }
