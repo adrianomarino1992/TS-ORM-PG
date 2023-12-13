@@ -68,22 +68,22 @@ export default abstract class PGDBContext extends AbstractContext
        
         let dbName = this._manager["_connection"].DataBaseName;
 
-        if(!await this._manager.CheckDatabase(dbName))
-            await this._manager.CreateDataBase(dbName);
+        if(!await this._manager.CheckDatabaseAsync(dbName))
+            await this._manager.CreateDataBaseAsync(dbName);
 
         for(let type of this.GetMappedTypes())
         {
-            await this._manager.UpdateDatabaseForEntity(type);
+            await this._manager.UpdateDatabaseForEntityAsync(type);
         }
 
     }
 
     public async ExecuteNonQuery(query : string): Promise<void> {
-       await this._manager.ExecuteNonQuery(query);
+       await this._manager.ExecuteNonQueryAsync(query);
     }
 
     public async ExecuteQuery(query : string): Promise<any> {
-        return await this._manager.Execute(query);
+        return await this._manager.ExecuteAsync(query);
     }    
 
 

@@ -12,9 +12,9 @@ describe("Connection", ()=>{
 
         expect(conn).not.toBe(null);
 
-        await conn.Open();
+        await conn.OpenAsync();
 
-        await conn.Close();
+        await conn.CloseAsync();
        
 
     });

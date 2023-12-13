@@ -117,7 +117,7 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
 
             let insert = `${sql} ${values} ${returnKey};`;
             
-            let retun = await this._manager.Execute(insert);
+            let retun = await this._manager.ExecuteAsync(insert);
             
 
             if(key != undefined && retun.rows.length > 0)
@@ -160,7 +160,7 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
                 if(subPK == undefined)                
                     throw new InvalidOperationException(`The type ${subType.name} must have a primary key column`);  
 
-                let hasToUpdateSubobject = false;
+                let hasSubrelation = false;
 
                 let colletion = this._context.Collection(subType as {new (...args: any[]) : Object})!;
 
@@ -174,7 +174,7 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
                             if(subRelation.Field != undefined && subRelation.Field != sub.Field)
                                 continue;
 
-                            hasToUpdateSubobject = true;
+                            hasSubrelation = true;
 
                             if(subRelation.Relation == RelationType.ONE_TO_MANY || subRelation.Relation == RelationType.MANY_TO_MANY)
                             {
@@ -252,31 +252,28 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
                 }
                
                 
-               if (hasToUpdateSubobject)
-               {
-                    if(isArray)
+                if(isArray)
+                {
+                    for(let i of subObj as Array<typeof subType>)
                     {
-                        for(let i of subObj as Array<typeof subType>)
-                        {
-                            if(i == undefined)
-                                continue;
-    
-                            if(!Type.HasValue(Reflect.get(i as any, subPK)))
-                                await (colletion as PGDBSet<typeof subType>)["AddAsync"](i as any);
-                            else 
-                                await (colletion as PGDBSet<typeof subType>)["UpdateObjectAsync"](i as any, false, updatableFields);
-                        }
-                    }else{
-    
-                        if(subObj == undefined)
+                        if(i == undefined)
                             continue;
-    
-                        if(!Type.HasValue(Reflect.get(subObj as any, subPK)))
-                            await (colletion as PGDBSet<typeof subType>)["AddAsync"](subObj as any);
+
+                        if(!Type.HasValue(Reflect.get(i as any, subPK)))
+                            await (colletion as PGDBSet<typeof subType>)["AddAsync"](i as any);
                         else 
-                            await (colletion as PGDBSet<typeof subType>)["UpdateObjectAsync"](subObj as any, false, updatableFields);
-                    } 
-               }                               
+                            await (colletion as PGDBSet<typeof subType>)["UpdateObjectAsync"](i as any, false, updatableFields);
+                    }
+                }else{
+
+                    if(subObj == undefined)
+                        continue;
+
+                    if(!Type.HasValue(Reflect.get(subObj as any, subPK)))
+                        await (colletion as PGDBSet<typeof subType>)["AddAsync"](subObj as any);
+                    else 
+                        await (colletion as PGDBSet<typeof subType>)["UpdateObjectAsync"](subObj as any, false, updatableFields);
+                }  
 
                 
                 let columnType = Type.CastType(Type.GetDesingTimeTypeName(subType, subPK)!);
@@ -327,7 +324,7 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
                     }
                 });
 
-                await this._manager.ExecuteNonQuery(subUpdate);
+                await this._manager.ExecuteNonQueryAsync(subUpdate);
             }
 
             return obj;
@@ -459,7 +456,7 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
             
                                         let subUpdate = `update ${subTableName} set ${subColumnName.Column} =  ${subColumnName.Column} || ${queryAllpks}  where "${subPkColumn.Column}" = ${this.CreateValueStatement(Type.CastType(subPkColumn.Type), Reflect.get(i as any, subPK))}`;
                                             
-                                        await this._manager.ExecuteNonQuery(subUpdate);   
+                                        await this._manager.ExecuteNonQueryAsync(subUpdate);   
                                     }                                                             
                                         
                                 }                                        
@@ -502,7 +499,7 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
     
                                     let subUpdate = `update ${subTableName} set ${subColumnName.Column} =  ${subColumnName.Column} || ${queryAllpks}  where "${subPkColumn.Column}" = ${this.CreateValueStatement(Type.CastType(subPkColumn.Type), Reflect.get(set[0].Value as any, subPK))}`;
                                     
-                                    await this._manager.ExecuteNonQuery(subUpdate);   
+                                    await this._manager.ExecuteNonQueryAsync(subUpdate);   
                                 }                                                             
                                 
                             }
@@ -552,7 +549,7 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
 
             update += " " + whereSrt;                 
 
-            await this._manager.ExecuteNonQuery(update);
+            await this._manager.ExecuteNonQueryAsync(update);
         });
         
         
@@ -661,7 +658,7 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
                 update += ` ${where.StatementType} ${this.EvaluateStatement(where)} `;
             }  
 
-            await this._manager.ExecuteNonQuery(update);
+            await this._manager.ExecuteNonQueryAsync(update);
             
             let subTypesUpdates : string[] = [];
 
@@ -714,7 +711,7 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
                 if(key == undefined)
                     throw new InvalidOperationException(`The type ${this._type.name} must have a primary key column`);
 
-                let hasToUpdateSubobject = false;
+                let hasSubrelation = false;
 
                 if(key != undefined){
 
@@ -730,7 +727,7 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
                             if(subRelation.Field != undefined && subRelation.Field != sub.Field)
                                 continue;
                         
-                            hasToUpdateSubobject = true;
+                            hasSubrelation = true;
 
                             if(subRelation.Relation == RelationType.ONE_TO_MANY || subRelation.Relation == RelationType.MANY_TO_MANY)
                             {
@@ -835,7 +832,7 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
     
                         if(!Type.HasValue(Reflect.get(i as any, subPK)))
                             await (colletion as PGDBSet<typeof subType>)["AddAsync"](i as any);
-                        else if(hasToUpdateSubobject && (cascade || relationsAllowed.filter(s => s == sub.Field).length > 0))
+                        else if(!hasSubrelation || (cascade || relationsAllowed.filter(s => s == sub.Field).length > 0))
                             await (colletion as PGDBSet<typeof subType>)["UpdateObjectAsync"](i as any, false);
                     }
 
@@ -847,7 +844,7 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
     
                     if(!Type.HasValue(Reflect.get(subObj as any, subPK)))
                         await (colletion as PGDBSet<typeof subType>)["AddAsync"](subObj as any);
-                    else if(hasToUpdateSubobject && (cascade || relationsAllowed.filter(s => s == sub.Field).length > 0))
+                    else if(!hasSubrelation || (cascade || relationsAllowed.filter(s => s == sub.Field).length > 0))
                         await (colletion as PGDBSet<typeof subType>)["UpdateObjectAsync"](subObj as any, false);
                 } 
                                     
@@ -899,7 +896,7 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
                     }
                 });
 
-                await this._manager.ExecuteNonQuery(subUpdate);
+                await this._manager.ExecuteNonQueryAsync(subUpdate);
             }
 
             return obj;
@@ -934,7 +931,7 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
                 query += whereSrt;
             }              
 
-            await this._manager.ExecuteNonQuery(query);
+            await this._manager.ExecuteNonQueryAsync(query);
 
         });
     }
@@ -974,7 +971,7 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
                 del += ` ${where.StatementType} ${this.EvaluateStatement(where)} `;
             }  
 
-            await this._manager.ExecuteNonQuery(del);
+            await this._manager.ExecuteNonQueryAsync(del);
 
             return obj;
         });
@@ -1120,7 +1117,7 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
                 query += ` limit ${this._limit.Limit}`;
             }
 
-            var r = await this._manager.Execute(query);
+            var r = await this._manager.ExecuteAsync(query);
 
             this.Reset();
 
@@ -1185,7 +1182,7 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
                 query += ` limit ${this._limit.Limit}`;
             }
 
-            var r = await this._manager.Execute(query);
+            var r = await this._manager.ExecuteAsync(query);
 
             if(r.rows.length == 0)
             {

@@ -113,17 +113,17 @@ export async function CompleteSeedAsync(): Promise<Context> {
 
 export async function TruncatePersonTableAsync() {
   let conn = CreateConnection();
-  await conn.Open();
-  await conn.ExecuteNonQuery(`truncate table ${Type.GetTableName(Person)}`);
-  await conn.Close();
+  await conn.OpenAsync();
+  await conn.ExecuteNonQueryAsync(`truncate table ${Type.GetTableName(Person)}`);
+  await conn.CloseAsync();
 }
 
 export async function TruncateTablesAsync() {
   let conn = CreateConnection();
-  await conn.Open();
-  await conn.ExecuteNonQuery(`truncate table ${Type.GetTableName(Person)}`);
-  await conn.ExecuteNonQuery(`truncate table ${Type.GetTableName(Message)}`);
-  await conn.Close();
+  await conn.OpenAsync();
+  await conn.ExecuteNonQueryAsync(`truncate table ${Type.GetTableName(Person)}`);
+  await conn.ExecuteNonQueryAsync(`truncate table ${Type.GetTableName(Message)}`);
+  await conn.CloseAsync();
 }
 
 

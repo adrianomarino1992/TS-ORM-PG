@@ -14,6 +14,7 @@ import DBOperationLogHandler, { LogType } from '../core/handlers/DBOperationLogH
 
 export default class PGDBManager extends AbstractManager
 {
+    
     private _connection! : PGDBConnection;   
     private _logger? : DBOperationLogHandler;
 
@@ -23,13 +24,13 @@ export default class PGDBManager extends AbstractManager
         this._connection = connection;
     }
 
-    public async CheckConnection(): Promise<boolean> {
+    public async CheckConnectionAsync(): Promise<boolean> {
         
         this.Log("Checking connection", LogType.CHECKCONNECTION);
 
         try
         {
-            await this._connection.Open();
+            await this._connection.OpenAsync();
             return true;
 
         }
@@ -39,35 +40,35 @@ export default class PGDBManager extends AbstractManager
         }
         finally
         {
-            await this._connection.Close();
+            await this._connection.CloseAsync();
         }
     }
     
-    public CheckDatabase(dababase: string): Promise<boolean> {
+    public CheckDatabaseAsync(dababase: string): Promise<boolean> {
        
         return this.CreatePromisse<boolean>(async ()=>
         {
             this.Log(`Checking database ${dababase}`, LogType.CHECKDATABASE);
 
-            await this._connection.AsPostgres().Open();
+            await this._connection.AsPostgres().OpenAsync();
 
-            let result = await this._connection.Execute(`select * from pg_database where datname = '${dababase}'`);
+            let result = await this._connection.ExecuteAsync(`select * from pg_database where datname = '${dababase}'`);
 
             return result.rows.length > 0;
         });
     }
-    public CreateDataBase(dababase: string): Promise<void> {
+    public CreateDataBaseAsync(dababase: string): Promise<void> {
         
         return this.CreatePromisse<void>(async ()=>
         {
             this.Log(`Creating database ${dababase}`, LogType.CREATEDATABASE);
 
-            await this._connection.AsPostgres().Open();
+            await this._connection.AsPostgres().OpenAsync();
 
-            await this._connection.Execute(`create database ${dababase} with owner ${this._connection.UserName};`);            
+            await this._connection.ExecuteAsync(`create database ${dababase} with owner ${this._connection.UserName};`);            
         });
     }
-    public CheckTable(cTor : Function): Promise<boolean> {
+    public CheckTableAsync(cTor : Function): Promise<boolean> {
 
         return this.CreatePromisse<boolean>(async ()=>
         {           
@@ -76,14 +77,14 @@ export default class PGDBManager extends AbstractManager
 
             this.Log(`Checking table ${table}`, LogType.CHECKTABLE);
 
-            await this._connection.Open();
+            await this._connection.OpenAsync();
 
-            let result = await this._connection.Execute(`select * from information_schema.tables where table_catalog = '${this._connection.DataBaseName}' and table_name = '${table}';`);
+            let result = await this._connection.ExecuteAsync(`select * from information_schema.tables where table_catalog = '${this._connection.DataBaseName}' and table_name = '${table}';`);
 
             return result.rows.length > 0;
         });
     }
-    public CreateTable(cTor : Function): Promise<void> {
+    public CreateTableAsync(cTor : Function): Promise<void> {
 
         return this.CreatePromisse<void>(async ()=>
         {
@@ -91,13 +92,13 @@ export default class PGDBManager extends AbstractManager
 
             this.Log(`Creating table ${table}`, LogType.CREATETABLE);
 
-            await this._connection.Open();
+            await this._connection.OpenAsync();
 
-            await this._connection.Execute(`create table if not exists "${table}"();`);
+            await this._connection.ExecuteAsync(`create table if not exists "${table}"();`);
             
         });
     }
-    public CheckColumn(cTor : Function, key : string): Promise<boolean> {
+    public CheckColumnAsync(cTor : Function, key : string): Promise<boolean> {
 
         return this.CreatePromisse<boolean>(async ()=>
         {
@@ -107,14 +108,88 @@ export default class PGDBManager extends AbstractManager
 
             this.Log(`Checking column ${table}.${column}`, LogType.CHECKCOLUMN);
 
-            await this._connection.Open();
+            await this._connection.OpenAsync();
 
-            let result = await this._connection.Execute(`select * from information_schema.columns where table_name = '${table}' and column_name = '${column}';`);
+            let result = await this._connection.ExecuteAsync(`select * from information_schema.columns where table_name = '${table}' and column_name = '${column}';`);
 
             return result.rows.length > 0;
         });
     }
-    public CreateColumn(cTor : Function, key : string): Promise<void> {
+
+
+    public DropTableAsync(cTor: Function): Promise<void> {
+
+        return this.CreatePromisse<void>(async ()=>
+        {
+            let table = Type.GetTableName(cTor);
+
+            this.Log(`Dropping table ${table}`, LogType.CREATETABLE);
+
+            await this._connection.OpenAsync();
+
+            await this._connection.ExecuteAsync(`drop table if exists "${table}";`);
+            
+        });
+    }
+    public CheckColumnTypeAsync(cTor: Function, key: string): Promise<string> {
+
+        return this.CreatePromisse<string>(async ()=>
+        {
+            let table = Type.GetTableName(cTor);
+
+            let column = Type.GetColumnName(cTor, key);
+
+            this.Log(`Checking column ${table}.${column} type`, LogType.CHECKCOLUMNTYPE);
+
+            await this._connection.OpenAsync();
+
+            let result = await this._connection.ExecuteAsync(`select data_type from information_schema.columns where table_name = '${table}' and column_name = '${column}';`);
+
+            if(result.rows.length == 0)
+                return "";
+
+            return result.rows[0]['data_type'];
+        });
+        
+    }
+    public ChangeColumnTypeAsync(cTor: Function, key: string): Promise<void> {
+        
+        return this.CreatePromisse<void>(async ()=>
+        {
+            let table = Type.GetTableName(cTor);
+
+            let column = Type.GetColumnName(cTor, key);
+
+            this.Log(`Creating column ${table}.${column}`, LogType.CHECKCOLUMN);
+
+            let type = this.GetTypeOfColumn(cTor, key);
+            
+            await this._connection.OpenAsync();
+
+            await this._connection.ExecuteAsync(`alter table "${table}" alter column "${column}" type ${type};`);            
+            
+        });
+    }
+
+
+    public DropColumnAsync(cTor: Function, key: string): Promise<void> {
+
+        return this.CreatePromisse<void>(async ()=>
+        {
+            let table = Type.GetTableName(cTor);
+
+            let column = Type.GetColumnName(cTor, key);
+
+            this.Log(`Dropping table ${table}`, LogType.CREATETABLE);
+
+            await this._connection.OpenAsync();
+
+            await this._connection.ExecuteAsync(`alter table "${table}" drop column "${column}";`);
+            
+        });
+    }
+    
+    public CreateColumnAsync(cTor : Function, key : string): Promise<void> {
 
         return this.CreatePromisse<void>(async ()=>
         {
@@ -124,62 +199,72 @@ export default class PGDBManager extends AbstractManager
 
             this.Log(`Creating column ${table}.${column}`, LogType.CHECKCOLUMN);
 
-            let type = "";
-
-            try{
-
-                type = this.CastToPostgreSQLType(Type.GetDesingTimeTypeName(cTor, key)!);
-
-            }catch(ex)
-            {               
-                
-                let subType = Type.GetDesingType(cTor, key);
-
-                let relation = SchemasDecorators.GetRelationAttribute(cTor, key);
-
-                if(subType == undefined || subType == Array){
-                    
-                    if(relation)
-                        subType = relation.TypeBuilder();
-                    
-                    if(relation == undefined)
-                    {
-                        throw new InvalidOperationException(`Can not determine the relation of porperty ${cTor.name}${key}`);
-                    }
-                }                
-
-                let relatedKey = SchemasDecorators.ExtractPrimaryKey(subType!);
-
-                if(!relatedKey)
-                    throw new InvalidOperationException(`Can not determine the primary key of ${subType!.name}`); 
-
-                if(relation?.Relation == RelationType.ONE_TO_MANY || relation?.Relation == RelationType.MANY_TO_MANY)
-                {
-                    type = this.CastToPostgreSQLType(Type.AsArray(Type.GetDesingTimeTypeName(subType!, relatedKey)!));
-
-                }else{
-
-                    type = this.CastToPostgreSQLType(Type.GetDesingTimeTypeName(subType!, relatedKey)!);
-                }               
-                
-
-                if(type == DBTypes.SERIAL)
-                    type = this.CastToPostgreSQLType(DBTypes.INTEGER);
-                
-            }
+            let type = this.GetTypeOfColumn(cTor, key);
             
-            await this._connection.Open();
+            await this._connection.OpenAsync();
 
-            await this._connection.Execute(`alter table "${table}" add column "${column}" ${type};`);
+            await this._connection.ExecuteAsync(`alter table "${table}" add column "${column}" ${type};`);
 
             if(SchemasDecorators.IsPrimaryKey(cTor, key))
             {
-                await this._connection.Execute(`alter table "${table}" add constraint ${table}_${column}_pk primary key (${column});`);
+                await this._connection.ExecuteAsync(`alter table "${table}" add constraint ${table}_${column}_pk primary key (${column});`);
             }
             
         });
     }
-    public UpdateDatabaseForEntity(cTor: Function): Promise<void> {
+
+    private GetTypeOfColumn(cTor : Function, key : string) : string
+    {
+        let type = "";
+
+        try{
+
+            type = this.CastToPostgreSQLType(Type.GetDesingTimeTypeName(cTor, key)!);
+
+        }catch(ex)
+        {               
+            
+            let subType = Type.GetDesingType(cTor, key);
+
+            let relation = SchemasDecorators.GetRelationAttribute(cTor, key);
+
+            if(subType == undefined || subType == Array){
+                
+                if(relation)
+                    subType = relation.TypeBuilder();
+                
+                if(relation == undefined)
+                {
+                    throw new InvalidOperationException(`Can not determine the relation of porperty ${cTor.name}${key}`);
+                }
+            }                
+
+            let relatedKey = SchemasDecorators.ExtractPrimaryKey(subType!);
+
+            if(!relatedKey)
+                throw new InvalidOperationException(`Can not determine the primary key of ${subType!.name}`); 
+
+            if(relation?.Relation == RelationType.ONE_TO_MANY || relation?.Relation == RelationType.MANY_TO_MANY)
+            {
+                type = this.CastToPostgreSQLType(Type.AsArray(Type.GetDesingTimeTypeName(subType!, relatedKey)!));
+
+            }else{
+
+                type = this.CastToPostgreSQLType(Type.GetDesingTimeTypeName(subType!, relatedKey)!);
+            }               
+            
+
+            if(type == DBTypes.SERIAL)
+                type = this.CastToPostgreSQLType(DBTypes.INTEGER);
+            
+        }
+
+        return type;
+        
+    }
+
+   
+    public UpdateDatabaseForEntityAsync(cTor: Function): Promise<void> {
         
         return this.CreatePromisse<void>(async ()=>
         {
@@ -191,44 +276,44 @@ export default class PGDBManager extends AbstractManager
             if(table_name == undefined)
                 throw new TypeNotSuportedException(`The type ${cTor.name} is not supported. Can not determine the table name of type`);
 
-            await this._connection.Open();
+            await this._connection.OpenAsync();
 
-            if(!await this.CheckTable(cTor))
-                await this.CreateTable(cTor);
+            if(!await this.CheckTableAsync(cTor))
+                await this.CreateTableAsync(cTor);
             
             for(let column of Type.GetProperties(cTor))
             {
-                if(!await this.CheckColumn(cTor, column))
+                if(!await this.CheckColumnAsync(cTor, column))
                 {
-                    await this.CreateColumn(cTor, column);
+                    await this.CreateColumnAsync(cTor, column);
                 }
             }            
         });
 
     }
 
-    public async ExecuteNonQuery(query: string): Promise<void> {
+    public async ExecuteNonQueryAsync(query: string): Promise<void> {
 
         return this.CreatePromisse<void>(async ()=>
         {   
-            await this._connection.Open();
+            await this._connection.OpenAsync();
 
             this.Log(query, LogType.QUERY);
             
-            await this._connection.Execute(query);
+            await this._connection.ExecuteAsync(query);
             
         });
     }
 
-    public async Execute(query: string): Promise<any> {
+    public async ExecuteAsync(query: string): Promise<any> {
 
         return this.CreatePromisse<void>(async ()=>
         {           
-            await this._connection.Open();
+            await this._connection.OpenAsync();
 
             this.Log(query, LogType.QUERY);
 
-            return await this._connection.Execute(query);           
+            return await this._connection.ExecuteAsync(query);           
             
         });
     }
@@ -285,7 +370,7 @@ export default class PGDBManager extends AbstractManager
             }
             finally
             {
-                await this._connection.Close();
+                await this._connection.CloseAsync();
                 
                 if(success)
                     resolve(result);

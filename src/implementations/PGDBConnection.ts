@@ -33,13 +33,13 @@ export default class PGDBConnection extends AbstractConnection
         return this;
     }
     
-    public Open() : Promise<void>
+    public OpenAsync() : Promise<void>
     {
 
         return new Promise<void>(async (resolve, reject) => 
         {
             if(this.IsOpen)
-                await this.Close();
+                await this.CloseAsync();
 
             this._conn = new pg.Client({
                 host : this.HostName, 
@@ -66,7 +66,7 @@ export default class PGDBConnection extends AbstractConnection
 
     }
 
-    public Query(query : string) : Promise<any>
+    public QueryAsync(query : string) : Promise<any>
     {
         return new Promise<any>(async (resolve, reject) => 
         {
@@ -83,7 +83,7 @@ export default class PGDBConnection extends AbstractConnection
         
     }
 
-    public Close()
+    public CloseAsync()
     {
         return new Promise<void>(async (resolve, reject) => 
         {
@@ -103,7 +103,7 @@ export default class PGDBConnection extends AbstractConnection
     }
 
 
-    public async ExecuteNonQuery(query: string): Promise<void> {
+    public async ExecuteNonQueryAsync(query: string): Promise<void> {
        
         return new Promise<void>(async (resolve, reject) => 
         {
@@ -121,7 +121,7 @@ export default class PGDBConnection extends AbstractConnection
     }
 
 
-    public async Execute(query: string): Promise<any> {
+    public async ExecuteAsync(query: string): Promise<any> {
 
         return new Promise<any>(async (resolve, reject) => 
         {

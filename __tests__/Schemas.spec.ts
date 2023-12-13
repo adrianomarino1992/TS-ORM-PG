@@ -18,8 +18,8 @@ describe("Types and metadata", ()=>{
 
         var manager = new PGDBManager(conn);
 
-        let postgres = await manager.CheckDatabase('postgres');
-        let mysql = await manager.CheckDatabase('mysql');
+        let postgres = await manager.CheckDatabaseAsync('postgres');
+        let mysql = await manager.CheckDatabaseAsync('mysql');
        
         expect(postgres).toBeTruthy();
         expect(mysql).toBeFalsy();
@@ -33,19 +33,19 @@ describe("Types and metadata", ()=>{
 
         var manager = new PGDBManager(conn);
 
-        let test_db = await manager.CheckDatabase('test_db');
+        let test_db = await manager.CheckDatabaseAsync('test_db');
 
         if(test_db)
         {
-            await conn.AsPostgres().Open();
-            await conn.ExecuteNonQuery(`select pg_terminate_backend(pid) from pg_stat_activity where datname = 'test_db';`)
-            await conn.ExecuteNonQuery(`drop database test_db;`);
-            await conn.Close();
+            await conn.AsPostgres().OpenAsync();
+            await conn.ExecuteNonQueryAsync(`select pg_terminate_backend(pid) from pg_stat_activity where datname = 'test_db';`)
+            await conn.ExecuteNonQueryAsync(`drop database test_db;`);
+            await conn.CloseAsync();
         }
 
-        await manager.CreateDataBase('test_db');
+        await manager.CreateDataBaseAsync('test_db');
        
-        test_db = await manager.CheckDatabase('test_db');
+        test_db = await manager.CheckDatabaseAsync('test_db');
 
         expect(test_db).toBeTruthy();        
 
@@ -61,18 +61,18 @@ describe("Types and metadata", ()=>{
     
             var manager = new PGDBManager(conn);
     
-            let test_table = await manager.CheckTable(Person);
+            let test_table = await manager.CheckTableAsync(Person);
     
             if(test_table)
             {
-                await conn.Open();
-                await conn.ExecuteNonQuery(`drop table person_tb;`);
-                await conn.Close();
+                await conn.OpenAsync();
+                await conn.ExecuteNonQueryAsync(`drop table person_tb;`);
+                await conn.CloseAsync();
             }
             
-            await manager.CreateTable(Person);
+            await manager.CreateTableAsync(Person);
            
-            test_table = await manager.CheckTable(Person);
+            test_table = await manager.CheckTableAsync(Person);
     
             expect(test_table).toBeTruthy();        
     
@@ -88,7 +88,7 @@ describe("Types and metadata", ()=>{
 
                 var manager = new PGDBManager(conn);
         
-                let table = await manager.CheckColumn(Person, 'Name');
+                let table = await manager.CheckColumnAsync(Person, 'Name');
                
                 expect(table).toBeFalsy();        
         
@@ -101,20 +101,50 @@ describe("Types and metadata", ()=>{
         
                 var manager = new PGDBManager(conn);
         
-                let test_column = await manager.CheckColumn(Person, 'Name');
+                let test_column = await manager.CheckColumnAsync(Person, 'Name');
         
                 if(test_column)
                 {
-                    await conn.Open();
-                    await conn.ExecuteNonQuery(`alter table test_table drop column name;`);
-                    await conn.Close();
+                    await conn.OpenAsync();
+                    await conn.ExecuteNonQueryAsync(`alter table person_tb drop column name;`);
+                    await conn.CloseAsync();
                 }
                 
-                await manager.CreateColumn(Person, 'Name');
+                await manager.CreateColumnAsync(Person, 'Name');
                
-                test_column = await manager.CheckColumn(Person, 'Name');
+                test_column = await manager.CheckColumnAsync(Person, 'Name');
         
                 expect(test_column).toBeTruthy();        
+        
+            });
+
+
+            test("Testing create a column and drop it", async ()=>{
+        
+                var conn = new PGConnection("localhost", 5434, "test_db", "supervisor", "sup");
+        
+                var manager = new PGDBManager(conn);
+        
+                let test_column = await manager.CheckColumnAsync(Person, 'Name');
+        
+                if(test_column)
+                {
+                    await conn.OpenAsync();
+                    await conn.ExecuteNonQueryAsync(`alter table person_tb drop column name;`);
+                    await conn.CloseAsync();
+                }
+                
+                await manager.CreateColumnAsync(Person, 'Name');
+               
+                test_column = await manager.CheckColumnAsync(Person, 'Name');
+        
+                expect(test_column).toBeTruthy();     
+                
+                await manager.DropColumnAsync(Person, 'Name');
+
+                test_column = await manager.CheckColumnAsync(Person, 'Name');
+        
+                expect(test_column).toBeFalsy();     
         
             });
     
@@ -142,11 +172,11 @@ describe("Types and metadata", ()=>{
 
                     for(let t of context.GetMappedTypes())
                     {
-                        if(await manager.CheckTable(t))
+                        if(await manager.CheckTableAsync(t))
                         {
-                            await conn.Open();
-                            await conn.ExecuteNonQuery(`drop table ${Type.GetTableName(t)};`);
-                            await conn.Close();
+                            await conn.OpenAsync();
+                            await conn.ExecuteNonQueryAsync(`drop table ${Type.GetTableName(t)};`);
+                            await conn.CloseAsync();
                         }
                     } 
 
@@ -154,11 +184,11 @@ describe("Types and metadata", ()=>{
 
                     for(let t of context.GetMappedTypes())
                     {
-                        expect(await manager.CheckTable(t)).toBeTruthy();
+                        expect(await manager.CheckTableAsync(t)).toBeTruthy();
 
                         for(let c of Type.GetColumnNameAndType(t))
                         {
-                            expect(await manager.CheckColumn(t, c.Field)).toBeTruthy();
+                            expect(await manager.CheckColumnAsync(t, c.Field)).toBeTruthy();
                         }                    
                     }
                 }, err => 
@@ -168,6 +198,69 @@ describe("Types and metadata", ()=>{
                 
         
             }, 5000000);
+
+
+            test("Testing check column type", async ()=>{
+        
+                var conn = new PGConnection("localhost", 5434, "test_db", "supervisor", "sup");
+        
+                var manager = new PGDBManager(conn);
+        
+                let test_column = await manager.CheckColumnAsync(Person, 'Name');
+        
+                if(test_column)
+                {
+                    await conn.OpenAsync();
+                    await conn.ExecuteNonQueryAsync(`alter table person_tb drop column name;`);
+                    await conn.CloseAsync();
+                }
+                
+                await manager.CreateColumnAsync(Person, 'Name');
+               
+                test_column = await manager.CheckColumnAsync(Person, 'Name');
+        
+                expect(test_column).toBeTruthy();     
+                
+                let type = await manager.CheckColumnTypeAsync(Person, 'Name');               
+        
+                expect(type).toBe("text");     
+        
+            });
+
+
+            test("Testing change column type", async ()=>{
+        
+                var conn = new PGConnection("localhost", 5434, "test_db", "supervisor", "sup");
+        
+                var manager = new PGDBManager(conn);
+        
+                let test_column = await manager.CheckColumnAsync(Person, 'CEP');
+        
+                if(test_column)
+                {
+                    await conn.OpenAsync();
+                    await conn.ExecuteNonQueryAsync(`alter table person_tb drop column cep;`);    
+                    await conn.ExecuteNonQueryAsync(`alter table person_tb add column cep bigint;`);                
+                    await conn.CloseAsync();
+                }               
+                
+               
+                test_column = await manager.CheckColumnAsync(Person, 'CEP');
+        
+                expect(test_column).toBeTruthy();     
+                
+                let type = await manager.CheckColumnTypeAsync(Person, 'CEP');               
+        
+                expect(type).toBe("bigint");  
+
+                await manager.ChangeColumnTypeAsync(Person, "CEP");
+
+                type = await manager.CheckColumnTypeAsync(Person, 'CEP');               
+        
+                expect(type).toBe("integer");                  
+                
+        
+            });
         
     
         });
