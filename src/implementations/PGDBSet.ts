@@ -19,6 +19,7 @@ import PGSetHelper from "./PGSetHelper";
 export default class PGDBSet<T extends Object>  extends AbstractSet<T>
 {
     
+    
     private _type! : {new (...args : any[]) : T};    
     private _table! : string;
     private _maps! : ReturnType<typeof Type.GetColumnNameAndType>;
@@ -44,8 +45,15 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
     }
        
 
+    public async AddObjectAndRelationsAsync(obj: T, relations: (keyof T)[]): Promise<T> {
+        return this.AddObjectAsync(obj, false, relations);
+    }
     
     public AddAsync(obj : T): Promise<T> {
+        return this.AddObjectAsync(obj);
+    }
+
+    protected AddObjectAsync(obj : T, cascade : boolean = true, relations : (keyof T)[] = []): Promise<T> {
 
         return this.CreatePromisse(async () => 
         {
@@ -259,8 +267,10 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
                         if(i == undefined)
                             continue;
 
-                        if(!Type.HasValue(Reflect.get(i as any, subPK)))
-                            await (colletion as PGDBSet<typeof subType>)["AddAsync"](i as any);
+                        if(!Type.HasValue(Reflect.get(i as any, subPK))){
+                            if(cascade || relations.filter(s => s == sub.Field))
+                                await (colletion as PGDBSet<typeof subType>)["AddAsync"](i as any);
+                        }
                         else 
                             await (colletion as PGDBSet<typeof subType>)["UpdateObjectAsync"](i as any, false, updatableFields);
                     }
@@ -269,8 +279,10 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
                     if(subObj == undefined)
                         continue;
 
-                    if(!Type.HasValue(Reflect.get(subObj as any, subPK)))
-                        await (colletion as PGDBSet<typeof subType>)["AddAsync"](subObj as any);
+                    if(!Type.HasValue(Reflect.get(subObj as any, subPK))){
+                        if(cascade || relations.filter(s => s == sub.Field))
+                            await (colletion as PGDBSet<typeof subType>)["AddAsync"](subObj as any);
+                    }
                     else 
                         await (colletion as PGDBSet<typeof subType>)["UpdateObjectAsync"](subObj as any, false, updatableFields);
                 }  
