@@ -584,11 +584,17 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
         return this.UpdateObjectAsync(obj, false, relations ? relations.map(s => s.toString()) : []);
     }
 
-    private UpdateObjectAsync(obj : T, cascade? : boolean, relationsAllowed? : string[], fieldsAllowed? : string[]): Promise<T> {
+    private UpdateObjectAsync(obj : T, cascade? : boolean, relationsAllowed? : string[], fieldsAllowed? : string[], visiteds : any[] = []): Promise<T> {
         
         return this.CreatePromisse(async() => 
         {
             relationsAllowed = relationsAllowed ?? [];
+            visiteds = visiteds ?? [];
+
+            if(visiteds.indexOf(obj) > -1)
+                return obj;
+
+            visiteds.push(obj);
 
             if(!this.IsCorrectType(obj))
                 throw new InvalidOperationException(`The object passed as argument is not a ${this._type.name} instance`);
@@ -668,7 +674,8 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
                 update += ` ${where.StatementType} ${this.EvaluateStatement(where)} `;
             }  
 
-            await this._manager.ExecuteNonQueryAsync(update);
+            if(values.trim().length > 1)
+                await this._manager.ExecuteNonQueryAsync(update);
             
             let subTypesUpdates : string[] = [];
 
@@ -846,7 +853,7 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
                         if(!Type.HasValue(Reflect.get(i as any, subPK)))
                             await (colletion as PGDBSet<typeof subType>)["AddAsync"](i as any);
                         else if(!hasSubrelation || (cascade || relationsAllowed.filter(s => s == sub.Field).length > 0))
-                            await (colletion as PGDBSet<typeof subType>)["UpdateObjectAsync"](i as any, false);
+                            await (colletion as PGDBSet<typeof subType>)["UpdateObjectAsync"](i as any, false, [], [], visiteds);
                     }
 
 
@@ -858,7 +865,7 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
                     if(!Type.HasValue(Reflect.get(subObj as any, subPK)))
                         await (colletion as PGDBSet<typeof subType>)["AddAsync"](subObj as any);
                     else if(!hasSubrelation || (cascade || relationsAllowed.filter(s => s == sub.Field).length > 0))
-                        await (colletion as PGDBSet<typeof subType>)["UpdateObjectAsync"](subObj as any, false);
+                        await (colletion as PGDBSet<typeof subType>)["UpdateObjectAsync"](subObj as any, false, [], [], visiteds);
                 } 
                                     
                 let columnType = Type.CastType(Type.GetDesingTimeTypeName(subType, subPK)!);
