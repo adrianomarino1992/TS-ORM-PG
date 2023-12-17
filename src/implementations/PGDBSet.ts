@@ -168,7 +168,6 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
                 if(subPK == undefined)                
                     throw new InvalidOperationException(`The type ${subType.name} must have a primary key column`);  
 
-                let hasSubrelation = false;
 
                 let colletion = this._context.Collection(subType as {new (...args: any[]) : Object})!;
 
@@ -181,8 +180,7 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
 
                             if(subRelation.Field != undefined && subRelation.Field != sub.Field)
                                 continue;
-
-                            hasSubrelation = true;
+                           
 
                             if(subRelation.Relation == RelationType.ONE_TO_MANY || subRelation.Relation == RelationType.MANY_TO_MANY)
                             {
@@ -690,6 +688,9 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
                 
                 if(meta.length == 0 && relationsAllowed.filter(s => s == sub.Field).length == 0)
                     continue;
+
+                if(meta.length > 0)
+                    relationsAllowed.push(meta[0].Field);
 
                 let relation = SchemasDecorators.GetRelationAttribute(this._type, sub.Field);
                 let subType = Type.GetDesingType(this._type, sub.Field)!;
