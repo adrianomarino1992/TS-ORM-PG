@@ -576,7 +576,7 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
 
     public async UpdateAsync(obj : T) : Promise<T>
     {
-        return await this.UpdateObjectAsync(obj, false);
+        return await this.UpdateObjectAsync(obj, true);
     }
 
     public async UpdateObjectAndRelationsAsync(obj: T, relations: (keyof T)[]): Promise<T> {
