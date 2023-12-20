@@ -1,9 +1,9 @@
-import PGDBConnection from "../src/implementations/PGDBConnection";
-import Context from "./classes/TestContext";
-import PGDBManager from "../src/implementations/PGDBManager";
-import { Person } from "./classes/TestEntity";
-import Type from "../src/core/design/Type";
-import { Message } from "./classes/RelationEntity";
+import PGDBConnection from "../../src/implementations/PGDBConnection";
+import Context from "../classes/TestContext";
+import PGDBManager from "../../src/implementations/PGDBManager";
+import { Person } from "../classes/TestEntity";
+import Type from "../../src/core/design/Type";
+import { Message } from "../classes/RelationEntity";
 
 export function Try(action: () => void, onError?: (e: Error) => void) {
   try {

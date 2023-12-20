@@ -1,6 +1,6 @@
 
 
-import { TryAsync, CreateConnection } from "./TestFunctions";
+import { TryAsync, CreateConnection } from "./functions/TestFunctions";
 import Type from "../src/core/design/Type";
 import PGConnection from "../src/implementations/PGDBConnection";
 import PGDBManager from "../src/implementations/PGDBManager";

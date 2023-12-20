@@ -1,7 +1,7 @@
 
 import { Person } from './classes/TestEntity';
 import { Operation } from 'myorm_core';
-import {TruncatePersonTableAsync, CreateContext, SeedAsync, CompleteSeedAsync} from './TestFunctions';
+import {TruncatePersonTableAsync, CreateContext, SeedAsync, CompleteSeedAsync} from './functions/TestFunctions';
 import TypeNotMappedException from '../src/core/exceptions/TypeNotMappedException';
 
 
@@ -200,7 +200,7 @@ describe("Context", ()=>{
 
             await TruncatePersonTableAsync();              
     
-        });
+        },1000000);
 
         describe("Update relations", ()=>{
 
@@ -248,7 +248,7 @@ describe("Context", ()=>{
 
                 await TruncatePersonTableAsync();              
         
-            }, 5^10000);
+            }, 100000);
         });
     });
 

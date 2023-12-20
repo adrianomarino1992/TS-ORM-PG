@@ -119,6 +119,9 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
             if(key == undefined)            
                 throw new InvalidOperationException(`The type ${this._type.name} must have a primary key field`);
             
+            if(Type.HasValue(Reflect.get(obj as any, key.Property)))            
+                throw new InvalidOperationException(`Can not add a ${this._type.name} with ${key.Property} provided`);
+            
             
             sql = sql.substring(0, sql.length - 1) + ") ";
             values = values.substring(0, values.length - 1) + ")";
@@ -776,6 +779,8 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
                                                 value = value ?? [];
                                             }
 
+                                            value = value.filter(s => Reflect.get(s, key!.Property) != Reflect.get(obj, key!.Property));
+
                                             value.push(obj);
 
                                             Reflect.set(i as any, subKey, value);
@@ -805,6 +810,7 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
                                                 value = value ?? [];
                                             }
 
+                                            value = value.filter(s => Reflect.get(s, key!.Property) != Reflect.get(obj, key!.Property));
                                             value.push(obj);
 
                                             Reflect.set(subObj as any, subKey, value);
