@@ -53,10 +53,11 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
         return this.AddObjectAsync(obj);
     }
 
-    protected AddObjectAsync(obj : T, cascade : boolean = true, relations : (keyof T)[] = []): Promise<T> {
+    protected AddObjectAsync(obj : T, cascade : boolean = true, relations : (keyof T)[] = [], visiteds : any[] = []): Promise<T> {
 
         return this.CreatePromisse(async () => 
         {
+            visiteds = visiteds ?? [];
             if(!obj)
                 throw new InvalidOperationException(`Cannot insert a null reference object of ${this._type.name}`);
 
@@ -118,6 +119,10 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
 
             if(key == undefined)            
                 throw new InvalidOperationException(`The type ${this._type.name} must have a primary key field`);
+
+            if(visiteds.filter(s => s && s.constructor == obj.constructor && Reflect.get(s, key!.Property) == Reflect.get(obj, key!.Property)).length > 0)
+                return obj;
+            visiteds.push(obj);
             
             if(Type.HasValue(Reflect.get(obj as any, key.Property)))            
                 throw new InvalidOperationException(`Can not add a ${this._type.name} with ${key.Property} provided`);
@@ -258,9 +263,8 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
 
                         }
                     }
-                }
+                }              
                
-                
                 if(isArray)
                 {
                     for(let i of subObj as Array<typeof subType>)
@@ -270,10 +274,10 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
 
                         if(!Type.HasValue(Reflect.get(i as any, subPK))){
                             if(cascade || relations.filter(s => s == sub.Field))
-                                await (colletion as PGDBSet<typeof subType>)["AddAsync"](i as any);
+                                await (colletion as PGDBSet<typeof subType>)["AddObjectAsync"](i as any, true, [], visiteds);
                         }
                         else 
-                            await (colletion as PGDBSet<typeof subType>)["UpdateObjectAsync"](i as any, false, updatableFields);
+                            await (colletion as PGDBSet<typeof subType>)["UpdateObjectAsync"](i as any, false, updatableFields, [], visiteds);
                     }
                 }else{
 
@@ -282,10 +286,10 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
 
                     if(!Type.HasValue(Reflect.get(subObj as any, subPK))){
                         if(cascade || relations.filter(s => s == sub.Field))
-                            await (colletion as PGDBSet<typeof subType>)["AddAsync"](subObj as any);
+                        await (colletion as PGDBSet<typeof subType>)["AddObjectAsync"](subObj as any, true, [], visiteds);
                     }
                     else 
-                        await (colletion as PGDBSet<typeof subType>)["UpdateObjectAsync"](subObj as any, false, updatableFields);
+                        await (colletion as PGDBSet<typeof subType>)["UpdateObjectAsync"](subObj as any, false, updatableFields, [], visiteds);
                 }  
 
                 
@@ -595,9 +599,7 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
             visiteds = visiteds ?? [];
 
             if(visiteds.indexOf(obj) > -1)
-                return obj;
-
-            visiteds.push(obj);
+                return obj;            
 
             if(!this.IsCorrectType(obj))
                 throw new InvalidOperationException(`The object passed as argument is not a ${this._type.name} instance`);
@@ -669,6 +671,14 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
                 values += `"${map.Column}" = ${this.CreateValueStatement(colType, Reflect.get(obj, map.Field))},`;
 
             }
+
+            if(key == undefined)
+                throw new InvalidOperationException(`The type ${this._type.name} must have a primary key column`);
+
+            if(visiteds.filter(s => s && s.constructor == obj.constructor && Reflect.get(s, key!.Property) == Reflect.get(obj, key!.Property)).length > 0)
+                return obj;
+            
+            visiteds.push(obj);
             
             update = `${update} ${values.substring(0, values.length - 1)}`;
 
@@ -857,7 +867,7 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
                             continue;
     
                         if(!Type.HasValue(Reflect.get(i as any, subPK)))
-                            await (colletion as PGDBSet<typeof subType>)["AddAsync"](i as any);
+                            await (colletion as PGDBSet<typeof subType>)["AddObjectAsync"](i as any, true, [], visiteds);
                         else if(!hasSubrelation || (cascade || relationsAllowed.filter(s => s == sub.Field).length > 0))
                             await (colletion as PGDBSet<typeof subType>)["UpdateObjectAsync"](i as any, false, [], [], visiteds);
                     }
@@ -869,7 +879,7 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
                         continue;
     
                     if(!Type.HasValue(Reflect.get(subObj as any, subPK)))
-                        await (colletion as PGDBSet<typeof subType>)["AddAsync"](subObj as any);
+                        await (colletion as PGDBSet<typeof subType>)["AddObjectAsync"](subObj as any, true, [], visiteds);
                     else if(!hasSubrelation || (cascade || relationsAllowed.filter(s => s == sub.Field).length > 0))
                         await (colletion as PGDBSet<typeof subType>)["UpdateObjectAsync"](subObj as any, false, [], [], visiteds);
                 } 

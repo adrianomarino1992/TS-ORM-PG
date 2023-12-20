@@ -1,7 +1,7 @@
 
 import { Person } from './classes/TestEntity';
 import { Operation } from 'myorm_core';
-import {CompleteSeedAsync} from './TestFunctions';
+import {CompleteSeedAsync} from './functions/TestFunctions';
 import { Message } from './classes/RelationEntity';
 
 

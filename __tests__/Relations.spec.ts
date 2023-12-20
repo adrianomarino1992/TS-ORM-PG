@@ -1,6 +1,6 @@
 import { Person } from './classes/TestEntity';
 import { Operation } from 'myorm_core';
-import { TryAsync , TruncateTablesAsync, CreateContext } from './TestFunctions';
+import { TryAsync , TruncateTablesAsync, CreateContext } from './functions/TestFunctions';
 import { Message } from './classes/RelationEntity';
 
 

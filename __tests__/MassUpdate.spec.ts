@@ -1,6 +1,6 @@
 
 import { Operation } from 'myorm_core';
-import {CompleteSeedAsync, TruncateTablesAsync} from './TestFunctions';
+import {CompleteSeedAsync, TruncateTablesAsync} from './functions/TestFunctions';
 
 
 describe("Mass operations", ()=>{    
