@@ -144,6 +144,9 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
             
             let subTypesUpdates : string[] = [];
             let updatableFields : string[] = [];
+            let objectsToUpdate : {Objs : any[], UpdatableFields : string[], Type : {new (...args: any[]) : unknown}, SubPK : string}[] = [];
+            let objectsToAdd : {Objs : any[], Type : {new (...args: any[]) : unknown}, SubPK : string}[] = []; 
+            let buildSubupdates : (() => void)[] = [];
             for(let sub of subTypes)
             {
                 let relation = SchemasDecorators.GetRelationAttribute(this._type, sub.Field);
@@ -189,10 +192,10 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
                             if(subRelation.Field != undefined && subRelation.Field != sub.Field)
                                 continue;
                            
+                            updatableFields.push(subKey);
 
                             if(subRelation.Relation == RelationType.ONE_TO_MANY || subRelation.Relation == RelationType.MANY_TO_MANY)
-                            {
-                                updatableFields.push(subKey);
+                            {                              
 
                                 if(isArray)
                                 {
@@ -274,10 +277,28 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
 
                         if(!Type.HasValue(Reflect.get(i as any, subPK))){
                             if(cascade || relations.filter(s => s == sub.Field))
-                                await (colletion as PGDBSet<typeof subType>)["AddObjectAsync"](i as any, true, [], visiteds);
+                                {
+                                    let cs = objectsToAdd.filter(s => s.Type == subType);
+
+                                    if(cs.length == 0)
+                                        objectsToAdd.push({Objs : [i], Type : subType, SubPK : subPK});
+                                    else
+                                        cs[0].Objs.push(i);
+
+                                }
                         }
                         else 
-                            await (colletion as PGDBSet<typeof subType>)["UpdateObjectAsync"](i as any, false, updatableFields, [], visiteds);
+                        {
+                            let cs = objectsToUpdate.filter(s => s.Type == subType);
+    
+                            if(cs.length == 0)
+                                objectsToUpdate.push({Objs : [i], UpdatableFields : updatableFields , Type : subType, SubPK : subPK});
+                            else{
+                                cs[0].Objs.push(i);
+                                cs[0].UpdatableFields.push(...updatableFields)
+                            }
+    
+                        }
                     }
                 }else{
 
@@ -286,39 +307,101 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
 
                     if(!Type.HasValue(Reflect.get(subObj as any, subPK))){
                         if(cascade || relations.filter(s => s == sub.Field))
-                        await (colletion as PGDBSet<typeof subType>)["AddObjectAsync"](subObj as any, true, [], visiteds);
+                        {
+                            let cs = objectsToAdd.filter(s => s.Type == subType);
+
+                            if(cs.length == 0)
+                                objectsToAdd.push({Objs : [subObj], Type : subType, SubPK : subPK});
+                            else
+                                cs[0].Objs.push(subObj);
+
+                        }
                     }
                     else 
-                        await (colletion as PGDBSet<typeof subType>)["UpdateObjectAsync"](subObj as any, false, updatableFields, [], visiteds);
+                    {
+                        let cs = objectsToUpdate.filter(s => s.Type == subType);
+
+                        if(cs.length == 0)
+                            objectsToUpdate.push({Objs : [subObj], UpdatableFields : updatableFields , Type : subType, SubPK : subPK});
+                        else{
+                            cs[0].Objs.push(subObj);
+                            cs[0].UpdatableFields.push(...updatableFields)
+                        }
+
+                    }
                 }  
 
                 
-                let columnType = Type.CastType(Type.GetDesingTimeTypeName(subType, subPK)!);
-
-                if(relation?.Relation == RelationType.MANY_TO_MANY || relation?.Relation == RelationType.ONE_TO_MANY || isArray)
-                    columnType = Type.AsArray(columnType) as DBTypes;
-                
-                if(subObj == undefined)
-                    continue;
-                
-                let updateValues = [Reflect.get(subObj as any, subPK)];
-
-                if(isArray)
+                buildSubupdates.push(() =>
                 {
-                    updateValues = [];
+                    let spk = SchemasDecorators.ExtractPrimaryKey(subType)!;
 
-                    for(let i of subObj as Array<typeof subType>)
+                    let columnType = Type.CastType(Type.GetDesingTimeTypeName(subType, spk)!);
+
+                    if(relation?.Relation == RelationType.MANY_TO_MANY || relation?.Relation == RelationType.ONE_TO_MANY || isArray)
+                        columnType = Type.AsArray(columnType) as DBTypes;
+                    
+                    if(subObj == undefined)
+                        retun;
+                    
+                    let updateValues = [Reflect.get(subObj as any, spk)];
+    
+                    if(isArray)
                     {
-                        if(i == undefined)
-                            continue;
-
-                        updateValues.push(Reflect.get(i as any, subPK));
+                        updateValues = [];
+    
+                        for(let i of subObj as Array<typeof subType>)
+                        {
+                            if(i == undefined)
+                                continue;
+    
+                            updateValues.push(Reflect.get(i as any, spk));
+                        }
                     }
-                }
+    
+                    subTypesUpdates.push(`"${sub.Column}" = ${this.CreateValueStatement(columnType, isArray ? updateValues : updateValues[0])}`);
+                });
 
-                subTypesUpdates.push(`"${sub.Column}" = ${this.CreateValueStatement(columnType, isArray ? updateValues : updateValues[0])}`);
+                
                                
             }
+            
+            objectsToAdd.forEach(o => 
+            {
+                o.Objs =  o.Objs .filter((i, ix, s) => 
+                {
+                    return ix == s.findIndex(v => v == i);
+                });
+            });            
+           
+
+            objectsToUpdate.forEach(o => 
+            {
+                o.Objs =  o.Objs .filter((i, ix, s) => 
+                {
+                     return ix == s.findIndex(v => v == i);
+                });
+            });
+            
+
+            for(let cs of objectsToAdd)
+            {
+                let colletion = this._context.Collection(cs.Type as {new (...args: any[]) : Object})!;
+
+                for(let i of cs.Objs)
+                    await (colletion as PGDBSet<typeof cs.Type>)["AddObjectAsync"](i as any, true, [], visiteds);
+            }
+
+            for(let cs of objectsToUpdate)
+            {
+                let colletion = this._context.Collection(cs.Type as {new (...args: any[]) : Object})!;
+
+                for(let i of cs.Objs)
+                    await (colletion as PGDBSet<typeof cs.Type>)["UpdateObjectAsync"](i as any, false, cs.UpdatableFields, [], visiteds);
+            }
+
+            for(let b of buildSubupdates)
+                b();  
 
             if(subTypesUpdates.length > 0)
             {
@@ -699,18 +782,18 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
                 let metadata = Type.ExtractMetadata(obj);
                 let meta = metadata.filter(s => s.Field == sub.Field && s.Loaded);
 
+                let objetsToRemoveThisReferece : 
+                {HasRelation : boolean, IsArray : boolean, SubIsArray : boolean, SubField : string} = 
+                {HasRelation : false, IsArray : false, SubIsArray : false, SubField : ""};
+
                 if(((meta.length > 0 && meta[0].Loaded) || relationsAllowed.filter(s => s == sub.Field).length > 0) && subObj == undefined)
                 {
-                    subTypesUpdates.push(`"${sub.Column}" = null`);
-                        
-                    continue;
+                    subTypesUpdates.push(`"${sub.Column}" = null`);                    
                 }           
                 
                 if(meta.length == 0 && relationsAllowed.filter(s => s == sub.Field).length == 0)
                     continue;
-
-                if(meta.length > 0)
-                    relationsAllowed.push(meta[0].Field);
+              
 
                 let relation = SchemasDecorators.GetRelationAttribute(this._type, sub.Field);
                 let subType = Type.GetDesingType(this._type, sub.Field)!;
@@ -733,10 +816,13 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
                     subType = relation?.TypeBuilder();
                 }
                 
-                let subPK = SchemasDecorators.ExtractPrimaryKey(subType);
-
-                if(subObj == undefined)
+                if(relationsAllowed.filter(s => s == sub.Field).length == 0 && this.GetChanges(meta, subObj, subType).length == 0)
                     continue;
+
+                if(meta.length > 0)
+                    relationsAllowed.push(meta[0].Field);
+
+                let subPK = SchemasDecorators.ExtractPrimaryKey(subType);                
                
                 if(subPK == undefined)                
                     throw new InvalidOperationException(`The type ${subType.name} must have a primary key column`);
@@ -760,18 +846,28 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
                             if(subRelation.Field != undefined && subRelation.Field != sub.Field)
                                 continue;
                         
-                            hasSubrelation = true;
+                            objetsToRemoveThisReferece.HasRelation = true;
+                            objetsToRemoveThisReferece.SubField = subKey;
+
+                            hasSubrelation = true;                            
 
                             if(subRelation.Relation == RelationType.ONE_TO_MANY || subRelation.Relation == RelationType.MANY_TO_MANY)
                             {
+                                let subFKTypeIsArray = Type.GetDesingType(subType, subKey) == Array; 
+
+                                objetsToRemoveThisReferece.IsArray = isArray;
+                                objetsToRemoveThisReferece.SubIsArray = subFKTypeIsArray;
+
+                                if(subObj == undefined)
+                                    continue;
+
                                 if(isArray)
                                 {
                                     for(let i of subObj as Array<typeof subType>)
                                     {
                                         if(i == undefined)
                                             continue;
-
-                                        let subFKTypeIsArray = Type.GetDesingType(subType, subKey) == Array; 
+                                        
                                         if(subFKTypeIsArray)
                                         {
                                             let value : any[] = []; 
@@ -802,8 +898,7 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
                                        
                                     }
                                 }else{
-
-                                        let subFKTypeIsArray = Type.GetDesingType(subType, subKey) == Array; 
+                                       
                                         if(subFKTypeIsArray)
                                         {
                                             let value : any[] = []; 
@@ -834,6 +929,9 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
                                
                             }else{
 
+                                if(subObj == undefined)
+                                    continue;
+
                                 if(subRelation.Relation == RelationType.MANY_TO_ONE)
                                 {
                                     for(let i of subObj as Array<typeof subType>)
@@ -855,12 +953,44 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
 
 
                 let colletion = this._context.Collection(subType as {new (...args: any[]) : Object})!;
-                
+
+               
+                if(!hasSubrelation || (cascade || relationsAllowed.filter(s => s == sub.Field).length > 0))
+                    if(meta.length > 0 && objetsToRemoveThisReferece.HasRelation)
+                    {           
+                        let v = meta[0].Value;
+
+                        let changes = this.GetChanges(meta, subObj, subType);
+
+                        if(v instanceof Array)
+                            meta[0].Value = meta[0].Value.filter((s : any) => changes.indexOf(s) == -1);
+                        else if (v == changes[0])
+                            meta[0].Loaded = false;
+
+                        for(let c of changes)
+                        {
+                            let item = await (colletion as any)["Where"]({Field : subPK, Value : c})["LoadRelationOn"](objetsToRemoveThisReferece.SubField)["FirstOrDefaultAsync"]();
+                            if(item)
+                            {
+                                if(objetsToRemoveThisReferece.SubIsArray)
+                                {                                   
+                                    item[objetsToRemoveThisReferece.SubField] = 
+                                    (item[objetsToRemoveThisReferece.SubField] as Array<T>).filter(s => s && Reflect.get(s, key!.Property) != Reflect.get(obj, key!.Property));
+                                   
+                                }else{
+
+                                    item[objetsToRemoveThisReferece.SubField] = undefined;
+                                }   
+
+                                await (colletion as PGDBSet<typeof subType>)["UpdateObjectAsync"](item as any, false, [], [], visiteds);
+                            }
+                        }
+                        
+                    }
+                    
                
                 if(isArray)
                 {
-
-
                     for(let i of subObj as Array<typeof subType>)
                     {
                         if(i == undefined)
@@ -940,7 +1070,36 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
 
     }
 
-    DeleteSelectionAsync(): Promise<void> {
+
+    protected GetChanges(meta : ReturnType<typeof Type.ExtractMetadata>, subObj : any, subType : new (...args : any[]) => unknown) : number[]
+    {
+        
+        let v = meta[0].Value;
+        let subPK = SchemasDecorators.ExtractPrimaryKey(subType)!;
+        let g = Reflect.get;
+
+        if(v == undefined)
+            return [];
+
+        if(v instanceof Array && subObj instanceof Array)
+            if(v.length == 0 || v.every(s => subObj.find(u => g(u, subPK) == s)))
+                return [];
+            else
+                return v.filter(s => !subObj.find(u => g(u, subPK) == s));
+        
+        if(v instanceof Array && subObj == undefined)
+            return v;
+
+        if(v && subObj == undefined)
+            return [v];
+
+        if(v != g(subObj, subPK))
+            return [v];
+         
+        return[];
+    }
+    
+    public DeleteSelectionAsync(): Promise<void> {
         
         return this.CreatePromisse(async()=>{
 

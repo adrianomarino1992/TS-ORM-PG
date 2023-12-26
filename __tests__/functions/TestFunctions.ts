@@ -35,10 +35,9 @@ export function CreateContext(): Context {
 
 export async function SeedAsync() : Promise<Context>
 {
-    let context = CreateContext();
+    await TruncateTablesAsync();
 
-    if((await context.Persons.ToListAsync()).length > 0)
-      return context;
+    let context = CreateContext();    
 
     let adriano = new Person("Adriano", "adriano@test.com");
     adriano.Birth = new Date(1992,4,23);

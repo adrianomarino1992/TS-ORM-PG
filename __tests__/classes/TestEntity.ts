@@ -23,6 +23,9 @@ export class Person
     @DataType(DBTypes.INTEGER)
     public CEP : number; 
 
+    @Column()
+    @OneToOne(()=> Message, "User")
+    public Message? : Message;
 
     @Column()
     @DataType(DBTypes.TEXTARRAY)
@@ -66,6 +69,7 @@ export class Person
         this.MessagesWriten = [];
         this.LinkTestValueInPerson = -1;
         this.LinkTestArrayInPerson = [];
+        this.Message = undefined;
        
     }
        

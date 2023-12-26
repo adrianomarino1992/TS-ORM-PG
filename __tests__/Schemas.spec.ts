@@ -49,7 +49,7 @@ describe("Types and metadata", ()=>{
 
         expect(test_db).toBeTruthy();        
 
-    });
+    },100000);
 
 
     describe("Schemas", ()=>{

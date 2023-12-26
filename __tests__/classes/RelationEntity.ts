@@ -1,4 +1,4 @@
-import { Table, Column, PrimaryKey, DataType, ManyToOne, ManyToMany, DBTypes} from '../../src/Index';
+import { Table, Column, PrimaryKey, DataType, ManyToOne, ManyToMany, DBTypes, OneToOne} from '../../src/Index';
 import { Person } from './TestEntity';
 
 @Table("message_tb")
@@ -15,6 +15,11 @@ export class Message
     @Column()
     @ManyToOne(()=> Person, "MessagesWriten")
     public From? : Person;
+
+
+    @Column()
+    @OneToOne(()=> Person, "Message")
+    public User? : Person;
 
     @Column()  
     @ManyToMany(()=> Person, "MessagesReceived")  
@@ -36,6 +41,7 @@ export class Message
         this.To = to;       
         this.LinkTestValueInMessage = -1;
         this.LinkTestArrayInMessage = [];
+        this.User = undefined;
     }
        
 
