@@ -13,7 +13,7 @@ beforeAll(async()=>{
 
 describe("Context", ()=>{    
 
-    /*
+    
     
     test("Testing removing a item from array", async ()=>{
        
@@ -147,7 +147,7 @@ describe("Context", ()=>{
 
     },100000);
 
-    */
+    
    
     test("Testing removing reference from objetcs", async ()=>{
        

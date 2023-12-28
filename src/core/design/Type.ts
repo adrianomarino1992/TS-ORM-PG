@@ -51,6 +51,8 @@ export default class Type
     {
         let meta = Type.ExtractMetadata(object);
 
+        meta = meta.filter(s => s.Field != metadata.Field);
+
         meta.push(metadata);
 
         Reflect.set(object, '_orm_metadata_', meta);
