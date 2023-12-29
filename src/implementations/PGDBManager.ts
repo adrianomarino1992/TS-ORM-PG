@@ -292,6 +292,9 @@ export default class PGDBManager extends AbstractManager
                 {
                     let type = this.GetTypeOfColumn(cTor, column);
 
+                    if(type == DBTypes.SERIAL)
+                        type = DBTypes.INTEGER;
+
                     let dbType = await this.CheckColumnTypeAsync(cTor, column);
 
                     if(type.trim().toLowerCase() != dbType.trim().toLowerCase())

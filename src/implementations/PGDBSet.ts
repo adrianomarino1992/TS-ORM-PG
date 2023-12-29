@@ -1431,19 +1431,34 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
         return this.CreatePromisse(async () => 
         { 
 
-            let query = `select count(*) from "${this._table}"`; 
+            let whereSrt = PGSetHelper.ExtractWhereData(this);
+            let sqlSrt = PGSetHelper.ExtractSQLData(this);
 
-            if(this._whereAsString != undefined && this._statements.length > 0)
+            let query = `select count(*) from "${this._table}"`;             
+            
+            if(sqlSrt && sqlSrt.toLowerCase().trim().startsWith(`select distinct "${this._table}".*`))
             {
-                throw new InvalidOperationException("Is not possible combine free and structured queries");
+                query = sqlSrt;
             }
 
-            if(this._whereAsString != undefined)
-            {
-                query += ` ${this._whereAsString} `;                
-            }
+            if(!whereSrt){
 
-            query += this.EvaluateWhere();        
+                if(this._whereAsString != undefined && this._statements.length > 0)
+                {
+                    throw new InvalidOperationException("Is not possible combine free and structured queries");
+                }
+
+                if(this._whereAsString != undefined)
+                {
+                    query += ` ${this._whereAsString} `;                
+                }
+
+                query += this.EvaluateWhere();
+
+            }else
+            {
+                query += whereSrt;
+            }            
                 
             let ordenation = "";
 
@@ -1467,6 +1482,11 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
                 query += ` limit ${this._limit.Limit}`;
             }
 
+            if(sqlSrt && sqlSrt.toLowerCase().trim().startsWith(`select distinct "${this._table}".*`))
+            {
+                query = `select count(*) from (${query}) as counter`;
+            }
+
             var r = await this._manager.ExecuteAsync(query);
 
             this.Reset();
@@ -1474,7 +1494,7 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
             if(!r || r.rows.length == 0)
                 return 0;          
 
-            return r.rows[0].count;            
+            return Number.parseInt(r.rows[0].count);            
 
         });       
     } 

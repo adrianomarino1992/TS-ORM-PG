@@ -9,6 +9,7 @@ import TypeNotMappedException from "../core/exceptions/TypeNotMappedException";
 import PGDBManager from "./PGDBManager";
 import PGDBSet from "./PGDBSet";
 import PGSetHelper from "./PGSetHelper";
+import { DBTypes } from "../Index";
 
 export default abstract class PGDBContext extends AbstractContext
 {
@@ -190,8 +191,7 @@ export class JoinSelectable<T extends Object> implements IJoinSelectable<T>
 {
     private _context : PGDBContext;
     private _stack : IUnion[] = [];
-    private _onStatements : [string, string][] = [];
-    private _firstOrDefault : boolean = false;
+    private _onStatements : [string, string][] = [];  
     private _type : new (...args: any[]) => T;
     constructor(cT : new (...args: any[]) => T,  context : PGDBContext, stack : IUnion[], onStack : [string, string][])
     {
@@ -200,22 +200,58 @@ export class JoinSelectable<T extends Object> implements IJoinSelectable<T>
         this._stack = stack;
         this._onStatements = onStack;
     }
+
+
+    public Take(quantity: number): IJoinSelectable<T> {
+        this._context.Collection(this._type)?.Take(quantity);
+        return this;
+    }
+    public Offset(offset: number): IJoinSelectable<T> {
+        this._context.Collection(this._type)?.Offset(offset);
+        return this;
+    }
+    public Limit(limit: number): IJoinSelectable<T> {
+        this._context.Collection(this._type)?.Limit(limit);
+        return this;
+    }
+    public async CountAsync(): Promise<number> {
+        
+        let set = this.PrepareQuery();      
+
+        let c = await set.CountAsync();
+
+        this.Reset();
+            
+        return c;          
+    }
    
-    Join<K extends keyof T>(key: K): IJoinSelectable<T> {
+    public Join<K extends keyof T>(key: K): IJoinSelectable<T> {
 
        this._context.Collection(this._type)?.Join(key);
        return this;
     }
-    OrderBy<K extends keyof T>(key: K): IJoinSelectable<T> {
+    public OrderBy<K extends keyof T>(key: K): IJoinSelectable<T> {
         this._context.Collection(this._type)?.OrderBy(key);
         return this;
     }
-    OrderDescendingBy<K extends keyof T>(key: K): IJoinSelectable<T> {
+    public OrderDescendingBy<K extends keyof T>(key: K): IJoinSelectable<T> {
         this._context.Collection(this._type)?.OrderDescendingBy(key);
        return this;
     }
 
     public async ToListAsync(): Promise<T[]> {
+        
+        let set = this.PrepareQuery();
+
+        let r = await set.ToListAsync();
+
+        this.Reset();
+            
+        return r;  
+    }
+
+    protected PrepareQuery(): AbstractSet<T> 
+    {
 
         if(this._stack.length > this._onStatements.length + 1)
             throw new InvalidOperationException(`There is no enought On clausules to join all selected types`);
@@ -246,27 +282,43 @@ export class JoinSelectable<T extends Object> implements IJoinSelectable<T>
 
             query += ` inner join "${rigthSideTable}" on `;
 
+            let leftSideRelation = SchemasDecorators.GetRelationAttribute(leftSideType, leftSideField);
+            let rightSideRelation = SchemasDecorators.GetRelationAttribute(rightSideType, rightSideField);  
+
             if((leftSideIsArray && rightSideIsArray) || (!leftSideIsArray && !rightSideIsArray))
             {
                 query += ` "${leftSideTable}".${Type.GetColumnName(leftSideType, leftSideField)} = "${rigthSideTable}".${Type.GetColumnName(rightSideType, rightSideField)} `
 
             }else if (leftSideIsArray && !rightSideIsArray)
             {
-               let relation = SchemasDecorators.GetRelationAttribute(leftSideType, leftSideField);
-               
+                let rightSideDBType : DBTypes;
 
-               if(relation)
+                if(rightSideRelation)
+                {
+                    
+                    let rType = rightSideRelation.TypeBuilder();
+                    let rkey = SchemasDecorators.ExtractPrimaryKey(rType);
+
+                    if(!rkey)
+                        throw new ConstraintFailException(`The type ${rType.name} was no one primary key field`);
+
+                    rightSideDBType = Type.CastType(rightSideTypeMap.filter(s => s.Field == rkey)[0].Type);
+                }
+                else
+                {
+                    rightSideDBType = Type.CastType(rightSideTypeMap.filter(s => s.Field == rightSideField)[0].Type);
+                }       
+
+               if(leftSideRelation)
                {
-                    let rType = relation.TypeBuilder();
-                    let key = SchemasDecorators.ExtractPrimaryKey(rType);
+                    let lType = leftSideRelation.TypeBuilder();
+                    let key = SchemasDecorators.ExtractPrimaryKey(lType);
 
                     if(!key)
-                        throw new ConstraintFailException(`The type ${rType.name} was no one primary key field`);
+                        throw new ConstraintFailException(`The type ${lType.name} was no one primary key field`);
                     
-                    let relationMap = Type.GetColumnNameAndType(rType);
-
-                   let leftSideDBType = Type.CastType(relationMap.filter(s => s.Field == key)[0].Type);
-                   let rightSideDBType = Type.CastType(rightSideTypeMap.filter(s => s.Field == rightSideField)[0].Type);
+                   let relationMap = Type.GetColumnNameAndType(lType);
+                   let leftSideDBType = Type.CastType(relationMap.filter(s => s.Field == key)[0].Type);   
                    let leftColumnName =  leftSideTypeMap.filter(s => s.Field == leftSideField)[0].Column;
                    let rightColumnName =  rightSideTypeMap.filter(s => s.Field == rightSideField)[0].Column;
 
@@ -293,8 +345,7 @@ export class JoinSelectable<T extends Object> implements IJoinSelectable<T>
                     if(!elementType)
                         throw new InvalidOperationException(`Can not determine the array element type of ${leftSideType.name}.${leftSideField}`);
                        
-                    let leftColumnName =  leftSideTypeMap.filter(s => s.Field == leftSideField)[0].Column;
-                    let rightSideDBType = Type.CastType(rightSideTypeMap.filter(s => s.Field == rightSideField)[0].Type);                        
+                    let leftColumnName =  leftSideTypeMap.filter(s => s.Field == leftSideField)[0].Column;                                          
                     let rightColumnName =  rightSideTypeMap.filter(s => s.Field == rightSideField)[0].Column;
 
                     let areNumbers = Type.IsNumber(Type.CastType(elementType)) && Type.IsNumber(rightSideDBType);
@@ -313,13 +364,28 @@ export class JoinSelectable<T extends Object> implements IJoinSelectable<T>
                }
             }
             else if (rightSideIsArray && !leftSideIsArray)
-            {
-               let relation = SchemasDecorators.GetRelationAttribute(rightSideType, rightSideField);
-               
+            {  
+                let leftSideDBType : DBTypes;
 
-               if(relation)
+                if(leftSideRelation)
+                {
+                    
+                    let rType = leftSideRelation.TypeBuilder();
+                    let rkey = SchemasDecorators.ExtractPrimaryKey(rType);
+
+                    if(!rkey)
+                        throw new ConstraintFailException(`The type ${rType.name} was no one primary key field`);
+
+                    leftSideDBType = Type.CastType(leftSideTypeMap.filter(s => s.Field == rkey)[0].Type);
+                }
+                else
+                {
+                    leftSideDBType = Type.CastType(leftSideTypeMap.filter(s => s.Field == leftSideField)[0].Type);
+                }   
+
+               if(rightSideRelation)
                {
-                    let rType = relation.TypeBuilder();
+                    let rType = rightSideRelation.TypeBuilder();
                     let key = SchemasDecorators.ExtractPrimaryKey(rType);
 
                     if(!key)
@@ -328,7 +394,6 @@ export class JoinSelectable<T extends Object> implements IJoinSelectable<T>
                     let relationMap = Type.GetColumnNameAndType(rType);
                     
                    let rightSideDBType = Type.CastType(relationMap.filter(s => s.Field == key)[0].Type);
-                   let leftSideDBType = Type.CastType(rightSideTypeMap.filter(s => s.Field == leftSideField)[0].Type);
                    let leftColumnName =  leftSideTypeMap.filter(s => s.Field == leftSideField)[0].Column;
                    let rightColumnName =  rightSideTypeMap.filter(s => s.Field == rightSideField)[0].Column;
                    
@@ -354,7 +419,6 @@ export class JoinSelectable<T extends Object> implements IJoinSelectable<T>
                         throw new InvalidOperationException(`Can not determine the array element type of ${rightSideType.name}.${rightSideField}`);
                        
                     let leftColumnName =  leftSideTypeMap.filter(s => s.Field == leftSideField)[0].Column;
-                    let leftSideDBType = Type.CastType(leftSideTypeMap.filter(s => s.Field == leftSideField)[0].Type);                        
                     let rightColumnName =  rightSideTypeMap.filter(s => s.Field == rightSideField)[0].Column;
 
                     let areNumbers = Type.IsNumber(Type.CastType(elementType)) && Type.IsNumber(leftSideDBType);
@@ -395,27 +459,20 @@ export class JoinSelectable<T extends Object> implements IJoinSelectable<T>
         }
 
         PGSetHelper.InjectSQL<T>(selectedSideSet! as PGDBSet<T>, query);
-        PGSetHelper.InjectWhere<T>(selectedSideSet! as PGDBSet<T>, where);
-        
-        if(this._firstOrDefault)
-            selectedSideSet!.Limit(1);
-            
-        return await selectedSideSet!.ToListAsync();        
-        
+        PGSetHelper.InjectWhere<T>(selectedSideSet! as PGDBSet<T>, where); 
+
+        return selectedSideSet;         
     }
 
-    public async FirstOrDefaultAsync(): Promise<T | undefined> {
-
-        this._firstOrDefault = true;
-
-        let d = await this.ToListAsync();
-
-        this.Reset();
-
-        if(d.length > 0)
-            return d[0];
+    public async FirstOrDefaultAsync(): Promise<T | undefined> 
+    {        
+        let set = this.PrepareQuery();
         
-        return undefined;
+        let i = await set.FirstOrDefaultAsync();
+
+        this.Reset();      
+        
+        return i;
     }
 
     private Reset() : void
@@ -427,8 +484,7 @@ export class JoinSelectable<T extends Object> implements IJoinSelectable<T>
             set["Reset"]();
         }
 
-        this._stack = [];
-        this._firstOrDefault = false;
+        this._stack = [];       
         this._onStatements = [];
     }
     

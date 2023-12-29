@@ -173,6 +173,97 @@ describe("Context", ()=>{
 
         expect(msgs.length).toBe(3);      
                        
-    },5^100000);
+    },100000);
+    
+
+    test("Testing order by desc", async ()=>{
+       
+        let context = await CompleteSeedAsync();
+
+        let msgsFromAdriano = await context.Join(Person, Message)
+                               .On(Person, "MessagesWriten", Message, "Id")
+                               .Where(Person, {Field: 'Name', Value : "adriano"})
+                               .Select(Message)
+                               .OrderDescendingBy("Message")
+                               .ToListAsync();
+
+        expect(msgsFromAdriano.length).toBe(3);   
+        expect(msgsFromAdriano[0].Message).toBe('Some private message from Adriano');  
+        expect(msgsFromAdriano[1].Message).toBe('Some message from Adriano to nobody');  
+        expect(msgsFromAdriano[2].Message).toBe('Some message from Adriano');  
+                       
+    },100000);
+
+
+    test("Testing take", async ()=>{
+       
+        let context = await CompleteSeedAsync();
+
+        let msgsFromAdriano = await context.Join(Person, Message)
+                               .On(Person, "MessagesWriten", Message, "Id")
+                               .Where(Person, {Field: 'Name', Value : "adriano"})
+                               .Select(Message)
+                               .OrderDescendingBy("Message")
+                               .Take(1)
+                               .ToListAsync();
+
+        expect(msgsFromAdriano.length).toBe(1);   
+        expect(msgsFromAdriano[0].Message).toBe('Some private message from Adriano');         
+                       
+    },100000);
+
+    test("Testing limit", async ()=>{
+       
+        let context = await CompleteSeedAsync();
+
+        let msgsFromAdriano = await context.Join(Person, Message)
+                               .On(Person, "MessagesWriten", Message, "Id")
+                               .Where(Person, {Field: 'Name', Value : "adriano"})
+                               .Select(Message)
+                               .OrderDescendingBy("Message")
+                               .Limit(2)
+                               .ToListAsync();
+
+        expect(msgsFromAdriano.length).toBe(2);   
+        expect(msgsFromAdriano[0].Message).toBe('Some private message from Adriano');  
+        expect(msgsFromAdriano[1].Message).toBe('Some message from Adriano to nobody');         
+                       
+    },100000);
+
+
+    test("Testing offset", async ()=>{
+       
+        let context = await CompleteSeedAsync();
+
+        let msgsFromAdriano = await context.Join(Person, Message)
+                               .On(Person, "MessagesWriten", Message, "Id")
+                               .Where(Person, {Field: 'Name', Value : "adriano"})
+                               .Select(Message)
+                               .OrderDescendingBy("Message")
+                               .Offset(1)
+                               .ToListAsync();
+
+        expect(msgsFromAdriano.length).toBe(2);   
+        expect(msgsFromAdriano[0].Message).toBe('Some message from Adriano to nobody');  
+        expect(msgsFromAdriano[1].Message).toBe('Some message from Adriano');          
+                       
+    },100000);
+
+
+    test("Testing count", async ()=>{
+       
+        let context = await CompleteSeedAsync();
+
+        let count = await context.Join(Person, Message)
+                               .On(Person, "MessagesWriten", Message, "Id")
+                               .Where(Person, {Field: 'Name', Value : "adriano"})
+                               .Select(Message)
+                               .OrderDescendingBy("Message")
+                               .CountAsync()
+
+        expect(count).toBe(3);               
+                       
+    },100000);
+    
     
 });
