@@ -779,7 +779,7 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
                     continue;
                 }
 
-                if(fieldsAllowed && fieldsAllowed.filter(s => s == map.Column).length == 0)
+                if(fieldsAllowed && fieldsAllowed.length > 0 && fieldsAllowed.filter(s => s == map.Column).length == 0)
                     continue;
 
                 values += `"${map.Column}" = ${this.CreateValueStatement(colType, Reflect.get(obj, map.Field))},`;
@@ -857,7 +857,7 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
                     subType = relation?.TypeBuilder();
                 }
                 
-                if(relationsAllowed.filter(s => s == sub.Field).length == 0 && this.GetChanges(meta, subObj, subType).length == 0)
+                if((!cascade) && relationsAllowed.filter(s => s == sub.Field).length == 0 && this.GetChanges(meta, subObj, subType).length == 0)
                     continue;
 
                 if(meta.length > 0)
@@ -1006,7 +1006,7 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
                 let colletion = this._context.Collection(subType as {new (...args: any[]) : Object})!;
 
                
-                if(!hasSubrelation || (cascade || relationsAllowed.filter(s => s == sub.Field).length > 0))
+                if((cascade || relationsAllowed.filter(s => s == sub.Field).length > 0))
                     if(meta.length > 0 && objetsToRemoveThisReferece.HasRelation)
                     {           
                         let v = meta[0].Value;
@@ -1060,7 +1060,7 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
                                 cs[0].Objs.push(i);
 
                         }
-                        else if(!hasSubrelation || (cascade || relationsAllowed.filter(s => s == sub.Field).length > 0))
+                        else if((cascade || relationsAllowed.filter(s => s == sub.Field).length > 0))
                         {
                             let cs = objectsToUpdate.filter(s => s.Type == subType);
     
@@ -1099,7 +1099,7 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
                             cs[0].Objs.push(subObj);
 
                     }
-                    else if(!hasSubrelation || (cascade || relationsAllowed.filter(s => s == sub.Field).length > 0))
+                    else if((cascade || relationsAllowed.filter(s => s == sub.Field).length > 0))
                     {
                         let cs = objectsToUpdate.filter(s => s.Type == subType);
     
