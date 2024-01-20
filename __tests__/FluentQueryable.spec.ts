@@ -30,7 +30,7 @@ describe("Query", ()=>{
                                             Field : 'Name',
                                             Kind : Operation.CONSTAINS,
                                             Value : 'Adriano'
-                                        }).Join("MessagesReceived")
+                                        }).Load("MessagesReceived")
                                     .ToListAsync();
 
         expect(adrianos.length).toBe(3);

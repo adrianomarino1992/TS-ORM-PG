@@ -50,10 +50,10 @@ describe("Mass operations", ()=>{
 
         person = await context.Persons
                                 .Where({Field : "Id", Value : person?.Id!})
-                                .Join("MessagesWriten")
+                                .Load("MessagesWriten")
                                 .FirstOrDefaultAsync();
         
-        let all = await context.Messages.Join("From").ToListAsync(); 
+        let all = await context.Messages.Load("From").ToListAsync(); 
 
         for(let c of all)
         {
@@ -71,17 +71,17 @@ describe("Mass operations", ()=>{
         let context = await CompleteSeedAsync();
 
         let person = await context.Persons
-                                  .Join("MessagesReceived")
+                                  .Load("MessagesReceived")
                                   .FirstOrDefaultAsync();
 
         await context.Messages.Set('To', [person!]).UpdateSelectionAsync();
 
         person = await context.Persons
                                 .Where({Field : "Id", Value : person?.Id!})
-                                .Join("MessagesReceived")
+                                .Load("MessagesReceived")
                                 .FirstOrDefaultAsync();
         
-        let all = await context.Messages.Join("To").ToListAsync(); 
+        let all = await context.Messages.Load("To").ToListAsync(); 
 
         for(let c of all)
         {

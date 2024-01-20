@@ -10,6 +10,7 @@ import PGDBManager from "./PGDBManager";
 import PGDBSet from "./PGDBSet";
 import PGSetHelper from "./PGSetHelper";
 import { DBTypes } from "../Index";
+import { IJoining } from "myorm_core/lib/objects/interfaces/IDBContext";
 
 export default abstract class PGDBContext extends AbstractContext
 {
@@ -88,27 +89,59 @@ export default abstract class PGDBContext extends AbstractContext
     }    
 
 
-    Join(...args: (new (...args: any[]) => Object)[]): IJoiningQuery {
+    public From<T extends Object>(arg: (new (...args: any[]) => T)): IJoiningQuery {
         
-        return new JoiningQuery(this, args);
+        return new JoiningQuery(this, arg);
     }   
           
     
 
 }
 
+interface IJoinMap{JoiningTable : Function, Type: Join, Left : Function, LeftKey : string, Right : Function, RightKey : string};
+
+export class Joining implements IJoining
+{
+    private _joiningQuery : JoiningQuery;
+    private _joinType : Join;
+    private _joining : Function;
+    constructor(joiningQuery : JoiningQuery, join : Join, joinig : Function)
+    {
+        this._joiningQuery = joiningQuery;
+        this._joinType = join;
+        this._joining = joinig;
+
+    }
+    On<T extends Object, U extends Object>(cT: new (...args: any[]) => T, cKey: keyof T, uT: new (...args: any[]) => U, uKey: keyof U): IJoiningQuery {
+        
+        this._joiningQuery.CheckIfTypeIsAllowed(cT); 
+        this._joiningQuery.CheckIfTypeIsAllowed(cT); 
+        
+        this._joiningQuery.AddOnStatement(
+            {
+                JoiningTable: this._joining,
+                Type: this._joinType,
+                Left: cT, 
+                LeftKey: cKey.toString(),
+                Right: uT, 
+                RightKey : uKey.toString()
+            });
+
+        return this._joiningQuery as any as IJoiningQuery;
+    }
+}
 export class JoiningQuery implements IJoiningQuery
 {
 
     private _context : PGDBContext;
     private _stack : IUnion[] = [];
-    private _onStatements : [string, string][] = [];
+    private _onStatements : IJoinMap[] = [];
     
 
-    constructor(context : PGDBContext, stack :  (new (...args: any[]) => Object)[])
+    constructor(context : PGDBContext, arg :  (new (...args: any[]) => Object))
     {
         this._context = context;
-        this._stack.push(...stack.map(s => {return { Type : s as unknown}}));
+        this._stack.push({Type: arg, Join: Join.FROM});
         
         let notMappedTypes = this._stack.filter(s => this._context.Collection(s.Type as new (...args: any[]) => Object ) == undefined);
 
@@ -118,27 +151,26 @@ export class JoiningQuery implements IJoiningQuery
             this._stack = [];
             throw new InvalidOperationException(`The type ${(notMappedTypes[0].Type as any).name} is not mapped`);
         }
-
-
        
     }
-    On<C extends Object, U extends Object>(cT: { new(...args: any[]): C }, cKey: keyof C, uT: { new(...args: any[]): U}, uKey: keyof U): IJoiningQuery {
-       
-        this.CheckIfTypeIsAllowed(cT); 
-        this.CheckIfTypeIsAllowed(cT); 
 
-        let leftIndex = this._stack.findIndex(s => s.Type == cT);
-        let rightIndex = this._stack.findIndex(s => s.Type == uT);
-
-        if(rightIndex - leftIndex != 1)
-            throw new InvalidOperationException(`The On statement must follow the same order than Join`);
-        
-        this._onStatements.push([cKey.toString(), uKey.toString()]);
-
-        return this;
+    public InnerJoin(arg: new (...args: any[]) => Object): IJoining {
+        this._stack.push({Type: arg, Join: Join.INNER});
+        return new Joining(this, Join.INNER, arg);
     }
-   
-    Where<C extends Object, K extends keyof C>(cT: new (...args: any[]) => C, statement: IStatement<C, K>): IJoiningQuery {
+
+    public LeftJoin(arg: new (...args: any[]) => Object): IJoining {
+        this._stack.push({Type: arg, Join: Join.LEFT});
+        return new Joining(this, Join.LEFT, arg);
+    }
+
+    public AddOnStatement(on : IJoinMap) : void
+    {
+        this._onStatements.push(on);
+    }
+
+    
+    public Where<C extends Object, K extends keyof C>(cT: new (...args: any[]) => C, statement: IStatement<C, K>): IJoiningQuery {
         
         this.CheckIfTypeIsAllowed(cT);
         
@@ -148,7 +180,8 @@ export class JoiningQuery implements IJoiningQuery
         return this;
 
     }
-    And<C extends Object, K extends keyof C>(cT: new (...args: any[]) => C, statement: IStatement<C, K>): IJoiningQuery {
+
+    public And<C extends Object, K extends keyof C>(cT: new (...args: any[]) => C, statement: IStatement<C, K>): IJoiningQuery {
         this.CheckIfTypeIsAllowed(cT);
         
         let set = this._context.Collection(cT)!;
@@ -156,7 +189,8 @@ export class JoiningQuery implements IJoiningQuery
 
         return this;
     }
-    Or<C extends Object, K extends keyof C>(cT: new (...args: any[]) => C, statement: IStatement<C, K>): IJoiningQuery {
+
+    public Or<C extends Object, K extends keyof C>(cT: new (...args: any[]) => C, statement: IStatement<C, K>): IJoiningQuery {
 
         this.CheckIfTypeIsAllowed(cT);
         
@@ -166,12 +200,12 @@ export class JoiningQuery implements IJoiningQuery
         return this;
     }
 
-    Select<C extends Object>(cT: new (...args: any[]) => C): IJoinSelectable<C> {
+    public Select<C extends Object>(cT: new (...args: any[]) => C): IJoinSelectable<C> {
 
         return new JoinSelectable(cT, this._context, this._stack, this._onStatements);
     }
 
-    private CheckIfTypeIsAllowed(cT: new (...args: any[]) => Object)
+    public CheckIfTypeIsAllowed(cT: new (...args: any[]) => Object)
     {
         let set = this._context.Collection(cT);
 
@@ -191,9 +225,11 @@ export class JoinSelectable<T extends Object> implements IJoinSelectable<T>
 {
     private _context : PGDBContext;
     private _stack : IUnion[] = [];
-    private _onStatements : [string, string][] = [];  
+    private _onStatements : IJoinMap[] = [];  
     private _type : new (...args: any[]) => T;
-    constructor(cT : new (...args: any[]) => T,  context : PGDBContext, stack : IUnion[], onStack : [string, string][])
+
+
+    constructor(cT : new (...args: any[]) => T,  context : PGDBContext, stack : IUnion[], onStack : IJoinMap[])
     {
         this._type = cT;
         this._context = context;
@@ -206,14 +242,20 @@ export class JoinSelectable<T extends Object> implements IJoinSelectable<T>
         this._context.Collection(this._type)?.Take(quantity);
         return this;
     }
+
+
     public Offset(offset: number): IJoinSelectable<T> {
         this._context.Collection(this._type)?.Offset(offset);
         return this;
     }
+
+
     public Limit(limit: number): IJoinSelectable<T> {
         this._context.Collection(this._type)?.Limit(limit);
         return this;
     }
+
+
     public async CountAsync(): Promise<number> {
         
         let set = this.PrepareQuery();      
@@ -225,19 +267,24 @@ export class JoinSelectable<T extends Object> implements IJoinSelectable<T>
         return c;          
     }
    
-    public Join<K extends keyof T>(key: K): IJoinSelectable<T> {
+    public Load<K extends keyof T>(key: K): IJoinSelectable<T> {
 
-       this._context.Collection(this._type)?.Join(key);
+       this._context.Collection(this._type)?.Load(key);
        return this;
     }
+
+
     public OrderBy<K extends keyof T>(key: K): IJoinSelectable<T> {
         this._context.Collection(this._type)?.OrderBy(key);
         return this;
     }
+
+
     public OrderDescendingBy<K extends keyof T>(key: K): IJoinSelectable<T> {
         this._context.Collection(this._type)?.OrderDescendingBy(key);
        return this;
     }
+
 
     public async ToListAsync(): Promise<T[]> {
         
@@ -259,28 +306,26 @@ export class JoinSelectable<T extends Object> implements IJoinSelectable<T>
         if(this._stack.length < this._onStatements.length + 1)
             throw new InvalidOperationException(`There is more On clausules than join types selecteds`);
 
-        let selectedSideSet = this._context.Collection(this._type);
-
-        let leftSideType = this._stack[0].Type as Function;
+        let selectedSideSet = this._context.Collection(this._type);       
 
         let selectedTable = Type.GetTableName(this._type);
 
-        let query = `select distinct "${selectedTable}".* from "${Type.GetTableName(leftSideType)}" `;
+        let query = `select distinct "${selectedTable}".* from "${Type.GetTableName(this._stack[0].Type)}" `;
 
-        for(let i = 1; i < this._stack.length; i++)
+        for(let i = 0; i < this._onStatements.length; i++)
         {           
-            let rightSideType = this._stack[i].Type as Function;
+            let leftSideType = this._onStatements[i].Left;
+            let rightSideType = this._onStatements[i].Right;
             let leftSideTable = Type.GetTableName(leftSideType);
-            let rigthSideTable = Type.GetTableName(rightSideType); 
-            let onStatement = this._onStatements[i-1];            
-            let leftSideField = onStatement[0];
-            let rightSideField = onStatement[1];
+            let rigthSideTable = Type.GetTableName(rightSideType);                        
+            let leftSideField = this._onStatements[i].LeftKey;
+            let rightSideField = this._onStatements[i].RightKey;
             let leftSideIsArray = Type.GetDesingType(leftSideType, leftSideField) == Array;
             let rightSideIsArray = Type.GetDesingType(rightSideType, rightSideField) == Array;
             let rightSideTypeMap = Type.GetColumnNameAndType(rightSideType);
             let leftSideTypeMap = Type.GetColumnNameAndType(leftSideType);
 
-            query += ` inner join "${rigthSideTable}" on `;
+            query += ` ${this._onStatements[i].Type == Join.LEFT ? 'left' : 'inner'} join "${Type.GetTableName(this._onStatements[i].JoiningTable)}" on `;
 
             let leftSideRelation = SchemasDecorators.GetRelationAttribute(leftSideType, leftSideField);
             let rightSideRelation = SchemasDecorators.GetRelationAttribute(rightSideType, rightSideField);  
@@ -434,9 +479,7 @@ export class JoinSelectable<T extends Object> implements IJoinSelectable<T>
                         
                     query += ` "${leftSideTable}".${leftColumnName} = ANY("${rigthSideTable}".${rightColumnName})`;             
                 }
-            }
-
-            leftSideType = this._stack[i].Type as Function;
+            }            
         }
         
         let where = "";
@@ -493,6 +536,14 @@ export class JoinSelectable<T extends Object> implements IJoinSelectable<T>
 
 interface IUnion
 {
-    Type : unknown,
-    Key?  : string
+    Type : Function,
+    Key?  : string,
+    Join : Join
 }
+
+enum Join
+{
+    FROM = 0,
+    INNER = 1, 
+    LEFT = 2,
+} 

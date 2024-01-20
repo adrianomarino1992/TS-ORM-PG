@@ -36,8 +36,8 @@ describe("Context", ()=>{
             Field : "Id", 
             Value : msg.Id
         })
-        .Join('From')
-        .Join('To')            
+        .Load('From')
+        .Load('To')            
         .FirstOrDefaultAsync();
        
         expect(msgfromDB).not.toBe(undefined);            
@@ -50,7 +50,7 @@ describe("Context", ()=>{
         
         let p = msgfromDB!.To![0];
 
-        let before = await context.Persons.Where({Field : "Id", Value : p.Id}).Join("MessagesReceived").FirstOrDefaultAsync()!;
+        let before = await context.Persons.Where({Field : "Id", Value : p.Id}).Load("MessagesReceived").FirstOrDefaultAsync()!;
 
         expect(before?.MessagesReceived?.length).toBe(1);      
 
@@ -65,11 +65,11 @@ describe("Context", ()=>{
             Field : "Id", 
             Value : msg.Id
         })
-        .Join('From')
-        .Join('To')            
+        .Load('From')
+        .Load('To')            
         .FirstOrDefaultAsync();
 
-        let after = await context.Persons.Where({Field : "Id", Value : p.Id}).Join("MessagesReceived").FirstOrDefaultAsync()!;
+        let after = await context.Persons.Where({Field : "Id", Value : p.Id}).Load("MessagesReceived").FirstOrDefaultAsync()!;
 
         expect(after?.MessagesReceived?.length).toBe(0);
 
@@ -99,8 +99,8 @@ describe("Context", ()=>{
             Field : "Id", 
             Value : msg.Id
         })
-        .Join('From')
-        .Join('To')            
+        .Load('From')
+        .Load('To')            
         .FirstOrDefaultAsync();
        
         expect(msgfromDB).not.toBe(undefined);            
@@ -111,15 +111,15 @@ describe("Context", ()=>{
         expect(msgfromDB!.To![1].Name).toBe("Juliana");
         expect(msgfromDB!.To![2].Name).toBe("Andre");
         
-        let p =  await context.Persons.Where({Field : "Id", Value : msgfromDB!.To![0].Id}).Join("MessagesReceived").FirstOrDefaultAsync()!;;
+        let p =  await context.Persons.Where({Field : "Id", Value : msgfromDB!.To![0].Id}).Load("MessagesReceived").FirstOrDefaultAsync()!;;
 
         let before = await context.Messages
         .Where({
             Field : "Id", 
             Value : msg.Id
         })
-        .Join('From')
-        .Join('To')            
+        .Load('From')
+        .Load('To')            
         .FirstOrDefaultAsync();
 
         expect(before?.To?.length).toBe(3);    
@@ -133,13 +133,13 @@ describe("Context", ()=>{
             Field : "Id", 
             Value : msg.Id
         })
-        .Join('From')
-        .Join('To')            
+        .Load('From')
+        .Load('To')            
         .FirstOrDefaultAsync();
 
         expect(after?.To?.length).toBe(2); 
 
-        let personAfter = await context.Persons.Where({Field : "Id", Value : p!.Id}).Join("MessagesReceived").FirstOrDefaultAsync()!;
+        let personAfter = await context.Persons.Where({Field : "Id", Value : p!.Id}).Load("MessagesReceived").FirstOrDefaultAsync()!;
 
         expect(personAfter?.MessagesReceived?.length).toBe(0);
 
@@ -170,8 +170,8 @@ describe("Context", ()=>{
             Field : "Id", 
             Value : msg.Id
         })
-        .Join('From')
-        .Join('To')            
+        .Load('From')
+        .Load('To')            
         .FirstOrDefaultAsync();
        
         expect(msgfromDB).not.toBe(undefined);            
@@ -182,14 +182,14 @@ describe("Context", ()=>{
         expect(msgfromDB!.To![1].Name).toBe("Juliana");
         expect(msgfromDB!.To![2].Name).toBe("Andre");
         
-        let p =  await context.Persons.Where({Field : "Id", Value : msgfromDB!.From!.Id}).Join("Message").Join("MessagesWriten").FirstOrDefaultAsync()!;;
+        let p =  await context.Persons.Where({Field : "Id", Value : msgfromDB!.From!.Id}).Load("Message").Load("MessagesWriten").FirstOrDefaultAsync()!;;
 
         let before = await context.Messages
         .Where({
             Field : "Id", 
             Value : msg.Id
         })
-        .Join('User')              
+        .Load('User')              
         .FirstOrDefaultAsync();
 
         expect(before?.User?.Id).toBe(p?.Id);    
@@ -203,12 +203,12 @@ describe("Context", ()=>{
             Field : "Id", 
             Value : msg.Id
         })
-        .Join('User')               
+        .Load('User')               
         .FirstOrDefaultAsync();
 
         expect(after?.User).toBeUndefined(); 
 
-        let personAfter = await context.Persons.Where({Field : "Id", Value : p!.Id}).Join("MessagesWriten").Join("Message").FirstOrDefaultAsync()!;
+        let personAfter = await context.Persons.Where({Field : "Id", Value : p!.Id}).Load("MessagesWriten").Load("Message").FirstOrDefaultAsync()!;
 
         expect(personAfter?.MessagesWriten?.length).toBe(1);
         expect(personAfter?.Message).toBeUndefined();

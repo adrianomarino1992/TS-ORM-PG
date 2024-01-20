@@ -11,7 +11,8 @@ describe("Context", ()=>{
        
         let context = await CompleteSeedAsync();
 
-        let msgs = await context.Join(Person, Message)
+        let msgs = await context.From(Person)
+                               .InnerJoin(Message)
                                .On(Person, "Id", Message, "To")       
                                .Where(Person, 
                                     {
@@ -19,7 +20,7 @@ describe("Context", ()=>{
                                         Kind : Operation.CONSTAINS, 
                                         Value : "camila"
                                     })
-                               .Select(Message).Join("To").ToListAsync();
+                               .Select(Message).Load("To").ToListAsync();
         
         
         expect(msgs.length).toBe(2);
@@ -39,7 +40,7 @@ describe("Context", ()=>{
                 Field : "To", 
                 Kind : Operation.CONSTAINS,
                 Value : [camila!]
-            }).Join("To").ToListAsync();
+            }).Load("To").ToListAsync();
 
         expect(msgs.length).toBe(2);
         expect(msgs.findIndex(s => s.To?.length == 3)).toBeGreaterThan(-1);
@@ -56,7 +57,7 @@ describe("Context", ()=>{
             {
                 Field : "From",
                 Value : adriano!
-            }).Join("From").ToListAsync();
+            }).Load("From").ToListAsync();
 
         expect(msgs.length).toBe(3);
         expect(msgs[0].From?.Name).toBe("adriano");
@@ -69,7 +70,8 @@ describe("Context", ()=>{
        
         let context = await CompleteSeedAsync();
 
-        let msgs = await context.Join(Person, Message)
+        let msgs = await context.From(Person)
+                               .InnerJoin(Message)
                                .On(Person, "Id", Message, "To")       
                                .Where(Person, 
                                     {
@@ -82,7 +84,7 @@ describe("Context", ()=>{
                                             Kind : Operation.CONSTAINS, 
                                             Value : "private"
                                         })
-                               .Select(Message).Join("To").ToListAsync();
+                               .Select(Message).Load("To").ToListAsync();
      
 
         expect(msgs.length).toBe(1);       
@@ -95,7 +97,8 @@ describe("Context", ()=>{
        
         let context = await CompleteSeedAsync();
 
-        let msgs = await context.Join(Person, Message)
+        let msgs = await context.From(Person)
+                               .InnerJoin(Message)
                                .On(Person, "MessagesReceived", Message, "Id")       
                                .Where(Person, 
                                     {
@@ -103,7 +106,7 @@ describe("Context", ()=>{
                                         Kind : Operation.CONSTAINS, 
                                         Value : "camila"
                                     })
-                               .Select(Message).Join("To").ToListAsync();
+                               .Select(Message).Load("To").ToListAsync();
 
         expect(msgs.length).toBe(2);
         expect(msgs.findIndex(s => s.To?.length == 3)).toBeGreaterThan(-1);
@@ -115,7 +118,8 @@ describe("Context", ()=>{
        
         let context = await CompleteSeedAsync();
 
-        let msgs = await context.Join(Person, Message)
+        let msgs = await context.From(Person)
+                               .InnerJoin(Message)
                                .On(Person, "LinkTestValueInPerson", Message, "LinkTestValueInMessage")       
                                .Where(Person, 
                                     {
@@ -123,8 +127,8 @@ describe("Context", ()=>{
                                         Value : "adriano"
                                     })
                                .Select(Message)
-                               .Join("From")
-                               .Join("To")
+                               .Load("From")
+                               .Load("To")
                                .ToListAsync();
 
         expect(msgs.length).toBe(1);
@@ -138,7 +142,8 @@ describe("Context", ()=>{
        
         let context = await CompleteSeedAsync();
 
-        let msgs = await context.Join(Person, Message)
+        let msgs = await context.From(Person)
+                               .InnerJoin(Message)
                                .On(Person, "LinkTestArrayInPerson", Message, "LinkTestValueInMessage")       
                                .Where(Person, 
                                     {
@@ -146,8 +151,8 @@ describe("Context", ()=>{
                                         Value : "adriano"
                                     })
                                .Select(Message)
-                               .Join("From")
-                               .Join("To")
+                               .Load("From")
+                               .Load("To")
                                .ToListAsync();
 
         expect(msgs.length).toBe(2);
@@ -164,11 +169,12 @@ describe("Context", ()=>{
        
         let context = await CompleteSeedAsync();
 
-        let msgs = await context.Join(Person, Message)
+        let msgs = await context.From(Person)
+                               .InnerJoin(Message)
                                .On(Person, "LinkTestValueInPerson", Message, "LinkTestArrayInMessage")
                                .Select(Message)
-                               .Join("From")
-                               .Join("To")
+                               .Load("From")
+                               .Load("To")
                                .ToListAsync();
 
         expect(msgs.length).toBe(3);      
@@ -180,7 +186,8 @@ describe("Context", ()=>{
        
         let context = await CompleteSeedAsync();
 
-        let msgsFromAdriano = await context.Join(Person, Message)
+        let msgsFromAdriano = await context.From(Person)
+                               .InnerJoin(Message)
                                .On(Person, "MessagesWriten", Message, "Id")
                                .Where(Person, {Field: 'Name', Value : "adriano"})
                                .Select(Message)
@@ -199,7 +206,8 @@ describe("Context", ()=>{
        
         let context = await CompleteSeedAsync();
 
-        let msgsFromAdriano = await context.Join(Person, Message)
+        let msgsFromAdriano = await context.From(Person)
+                               .InnerJoin(Message)
                                .On(Person, "MessagesWriten", Message, "Id")
                                .Where(Person, {Field: 'Name', Value : "adriano"})
                                .Select(Message)
@@ -216,7 +224,8 @@ describe("Context", ()=>{
        
         let context = await CompleteSeedAsync();
 
-        let msgsFromAdriano = await context.Join(Person, Message)
+        let msgsFromAdriano = await context.From(Person)
+                               .InnerJoin(Message)
                                .On(Person, "MessagesWriten", Message, "Id")
                                .Where(Person, {Field: 'Name', Value : "adriano"})
                                .Select(Message)
@@ -235,7 +244,8 @@ describe("Context", ()=>{
        
         let context = await CompleteSeedAsync();
 
-        let msgsFromAdriano = await context.Join(Person, Message)
+        let msgsFromAdriano = await context.From(Person)
+                               .InnerJoin(Message)
                                .On(Person, "MessagesWriten", Message, "Id")
                                .Where(Person, {Field: 'Name', Value : "adriano"})
                                .Select(Message)
@@ -254,7 +264,8 @@ describe("Context", ()=>{
        
         let context = await CompleteSeedAsync();
 
-        let count = await context.Join(Person, Message)
+        let count = await context.From(Person)
+                               .InnerJoin(Message)
                                .On(Person, "MessagesWriten", Message, "Id")
                                .Where(Person, {Field: 'Name', Value : "adriano"})
                                .Select(Message)

@@ -34,8 +34,8 @@ describe("Add objects with relations", ()=>{
                 Field : "Id", 
                 Value : msg.Id
             })
-            .Join('From')
-            .Join('To')            
+            .Load('From')
+            .Load('To')            
             .FirstOrDefaultAsync();
            
             expect(msgfromDB).not.toBe(undefined);            
@@ -73,7 +73,7 @@ describe("Add objects with relations", ()=>{
                 await context.Messages.AddAsync(msg);
     
                 let personDB = await context.Persons
-                .Join('MessagesWriten')
+                .Load('MessagesWriten')
                 .Where({
                     Field : "Id",                      
                     Value : person.Id
@@ -119,7 +119,7 @@ describe("Add objects with relations", ()=>{
                 await context.Messages.UpdateAsync(messageDB!);
 
                 messageDB = await context.Messages      
-                .Join("From")          
+                .Load("From")          
                 .Where({
                     Field : "Id",                      
                     Value : msg.Id
@@ -164,7 +164,7 @@ describe("Add objects with relations", ()=>{
                 await context.Messages.AddAsync(msg);
     
                 let camilaDB = await context.Persons
-                .Join('MessagesReceived')
+                .Load('MessagesReceived')
                 .Where({
                     Field : "Id", 
                     Value : camila.Id
@@ -172,7 +172,7 @@ describe("Add objects with relations", ()=>{
                 .FirstOrDefaultAsync();
 
                 let julianaDB = await context.Persons
-                .Join('MessagesReceived')
+                .Load('MessagesReceived')
                 .Where({
                     Field : "Id", 
                     Value : juliana.Id
@@ -218,7 +218,7 @@ describe("Add objects with relations", ()=>{
                     Field : "Id",                    
                     Value : msg.Id
                 })
-                .Join('From')
+                .Load('From')
                 .FirstOrDefaultAsync();
     
                 expect(msgfromDB).not.toBe(undefined);
@@ -234,7 +234,7 @@ describe("Add objects with relations", ()=>{
                     Field : "Id",                      
                     Value : msg.Id
                 })
-                .Join('From')
+                .Load('From')
                 .FirstOrDefaultAsync();
                 
                 expect(msgfromDB).not.toBe(undefined);
@@ -263,7 +263,7 @@ describe("Add objects with relations", ()=>{
                     await context.Messages.AddAsync(msg);
         
                     let msgfromDB = await context.Messages
-                    .Join('From')
+                    .Load('From')
                     .Where({
                         Field : "Id", 
                         Kind : Operation.EQUALS, 

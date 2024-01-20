@@ -359,6 +359,22 @@ await context.Persons.DeleteAsync(person);
 ```
 
 
+# Inner and Left Join
+We can execute complex join operation 
+
+```typescript 
+let messagesToCamila = await context.From(Person)
+                               .InnerJoin(Message)
+                               .On(Person, "Id", Message, "To")       
+                               .Where(Person, 
+                                    {
+                                        Field : "Name",
+                                        Kind : Operation.CONSTAINS, 
+                                        Value : "camila"
+                                    })
+                               .Select(Message).Load("To").ToListAsync();
+```
+
 # Fluent query methods
 
 ## Where

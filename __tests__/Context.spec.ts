@@ -62,7 +62,7 @@ describe("Context", ()=>{
                                                 Field : 'Name', 
                                                 Kind: Operation.EQUALS, 
                                                 Value : 'Adriano'
-                                            }).Join("MessagesReceived")
+                                            }).Load("MessagesReceived")
                                         .ToListAsync();
     
             let all = await context.Persons.ToListAsync();
@@ -210,8 +210,8 @@ describe("Context", ()=>{
         
                 let message = await context.Messages
                                         .Where({Field : "Message", Kind : Operation.CONSTAINS, Value : "from Adriano to"})
-                                        .Join("From")
-                                        .Join("To")
+                                        .Load("From")
+                                        .Load("To")
                                         .FirstOrDefaultAsync();
         
                 expect(message?.Message).toBe("Some message from Adriano to nobody");
@@ -222,8 +222,8 @@ describe("Context", ()=>{
 
                 message = await context.Messages
                                     .Where({Field : "Message", Kind : Operation.CONSTAINS, Value : "from Adriano to"})
-                                    .Join("From")
-                                    .Join("To")
+                                    .Load("From")
+                                    .Load("To")
                                     .FirstOrDefaultAsync();
 
                 expect(message?.From?.Name).toBe("camila");
@@ -239,8 +239,8 @@ describe("Context", ()=>{
 
                 message = await context.Messages
                                         .Where({Field : "Message", Kind : Operation.CONSTAINS, Value : "from Adriano to"})
-                                        .Join("From")
-                                        .Join("To")
+                                        .Load("From")
+                                        .Load("To")
                                         .FirstOrDefaultAsync();
                 
                 expect(message?.From?.Name).toBe("adriano");

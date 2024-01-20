@@ -1386,7 +1386,7 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
 
     }
 
-    Join<K extends keyof T>(key : K): AbstractSet<T> {
+    Load<K extends keyof T>(key : K): AbstractSet<T> {
        
         this._includes.push(
             {
@@ -1614,7 +1614,7 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
 
     public LoadRelationOn<U extends keyof T, R extends PGDBSet<T>>(field: U): R {   
 
-        return this.Join(field) as any as R;        
+        return this.Load(field) as any as R;        
     }
 
     private CreatePromisse<T>(func : ()=> Promise<T>) : Promise<T>
