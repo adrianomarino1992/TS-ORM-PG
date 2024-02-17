@@ -4,6 +4,7 @@ import 'reflect-metadata';
 import SchemasDecorators from '../decorators/SchemasDecorators';
 import { DBTypes } from '../enums/DBTypes';
 import TypeNotSuportedException from '../exceptions/TypeNotSuportedException';
+import NotImpletedException from '../exceptions/NotImplementedException';
 
 export default class Type
 {
@@ -130,6 +131,19 @@ export default class Type
 
     }
 
+    public static GetFieldType<T>(cTor : new (...args: any[]) => T, key : keyof T) : (new (...args: any[]) => any) | undefined
+    {        
+        let type = Type.GetDesingType(cTor, key.toString());
+        let relation = SchemasDecorators.GetRelationAttribute(cTor, key.toString());
+
+        if(relation)
+            type = relation.TypeBuilder();
+
+        if(type == Array)
+            return undefined;
+
+        return type!;
+    }
 
     public static IsArray(dbType : string)
     {

@@ -238,7 +238,7 @@ let persons = await context.Persons.Where({
 
 ```
 
-# Join
+# Load
 We can load all related entities
 ```typescript
 
@@ -252,12 +252,28 @@ let persons = await context.Persons.Where({
 ```
 This query will retrive from database all persons with name "Adriano" and will load all messages receiveds base on relations attributes
 
-## We can create complex Joins
+
+# Reload relations from entities
+We can reload all related entities on a object that is not already loaded from database
+```typescript
+
+let messages = await context.Messages.ToListAsync(); // will load only the root(Message) object from database
+
+await context.Messages.ReloadCachedRealitionsAsync(messages, ["To"]); //will load/reload the "TO" property of all messages with Person objects
 
 
+```
+This query will load/reload the "TO" property of all messages with Person objects
+
+
+# Joins
+We can create complex Joins
+
+### Inner join
 ```typescript 
-   let msgs = await context.Join(Person, Message)
-                           .On(Person, "Id", Message, "To")       
+   let msgs = await context.From(Person)
+                           .InnerJoin(Message)
+                           .On(Person, "Id", Message, "To")      
                            .Where(Person,{
                                          Field : "Name",                 
                                          Value : "camila"
@@ -267,7 +283,7 @@ This query will retrive from database all persons with name "Adriano" and will l
                                            Kind : Operation.GREATHEROREQUALS, 
                                            Value : new Date(2023,0,1)
                                            })
-                         .Select(Message).Join("To").ToListAsync();
+                         .Select(Message).Load("To").ToListAsync();
 ```
 
 This query will retrieve from database all messages sent to a person with name "camila" and that are sent this year.

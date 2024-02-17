@@ -18,6 +18,7 @@ import PGSetHelper from "./PGSetHelper";
 
 export default class PGDBSet<T extends Object>  extends AbstractSet<T>
 {
+   
     
     
     private _type! : {new (...args : any[]) : T};    
@@ -1374,7 +1375,7 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
         return this;
     }
     
-    OrderBy<K extends keyof T>(key : K): AbstractSet<T> {
+    public OrderBy<K extends keyof T>(key : K): AbstractSet<T> {
        
         this._ordering.push(
             {
@@ -1386,7 +1387,7 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
 
     }
 
-    Load<K extends keyof T>(key : K): AbstractSet<T> {
+    public Load<K extends keyof T>(key : K): AbstractSet<T> {
        
         this._includes.push(
             {
@@ -1397,7 +1398,83 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
 
     }
 
-    OrderDescendingBy<K extends keyof T>(key : K): AbstractSet<T> {
+    public async ReloadCachedRealitionsAsync<K extends keyof T>(obj: T[], keys: K[]): Promise<void>;
+    public async ReloadCachedRealitionsAsync<K extends keyof T>(obj: T, keys: K[]): Promise<void>;
+    public async ReloadCachedRealitionsAsync(obj: any, keys: any): Promise<void> {
+        
+        let source : T[] = [];
+
+        if(!obj)
+            throw new InvalidOperationException('Can not load cached keys of undefined');
+
+        if(obj.constructor == Array)
+            source = obj.map(s => s);
+        else
+            source.push(obj);
+
+        for(let k of keys)
+        {
+            let type = Type.GetFieldType(this._type, k);
+
+            if(!type)
+                throw new InvalidOperationException(`Can not determine the type of ${this._type.name}.${k}`);
+
+            let pk = SchemasDecorators.ExtractPrimaryKey(type!);
+
+            if(!pk)
+                throw new InvalidOperationException(`The type ${type.name} must have a primary key field`);           
+
+            if(!this._context.IsMapped(type))
+                throw new InvalidOperationException(`Type ${type.name} of property ${this._type.name}.${k} is not mapped on this context`);
+
+            let ids = [];
+
+            for(let o of source)
+            {
+                let meta = Type.ExtractMetadata(o).filter(s => s.Field == k);
+
+                if(meta.length == 0)
+                    throw new InvalidOperationException(`Can not reload the key ${k} of a object without metadata`);
+
+                let m = meta[0].Value;
+
+                if(m != undefined && m != null)
+                {
+                    if(m.constructor == Array)
+                        ids.push(...m);
+                    else
+                        ids.push(m);
+                }
+                
+            }
+
+            if(ids.length == 0)
+                continue;
+
+            let cachedObjects = await this._context.Collection(type).WhereField(pk).IsInsideIn(ids).ToListAsync();
+
+            for(let o of source)
+            {
+                let m = Type.ExtractMetadata(o).filter(s => s.Field == k)[0]; 
+
+                if(m.Value == undefined || m.Value == null)
+                    (o as any)[k] = m.Value;
+                else if(m.Value.constructor == Array)
+                {
+                    (o as any)[k] = cachedObjects.filter(s => m.Value.filter((u: any) => u == (s as any)[pk!]).length > 0);
+                }else
+                {
+                    let i = cachedObjects.filter(s => m.Value.filter((u: any) => u == (s as any)[pk!]).length > 0);
+
+                    if(i.length > 0)
+                        (o as any)[k] = i[0];
+                }
+            }
+        }
+
+    }
+
+    public OrderDescendingBy<K extends keyof T>(key : K): AbstractSet<T> {
        
         this._ordering.push(
             {
@@ -1409,7 +1486,7 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
 
     }
 
-    Limit(limit : number): AbstractSet<T> {
+    public Limit(limit : number): AbstractSet<T> {
 
         this._limit = limit >= 1 ? { Limit : limit} : undefined; 
         return this;
