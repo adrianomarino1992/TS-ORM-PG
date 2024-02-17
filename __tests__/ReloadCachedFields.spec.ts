@@ -37,6 +37,50 @@ describe("Tpe utils functions", ()=>{
         
     });
 
+    test("Should load all FROM persons in all messages", async()=>{
+        
+        let context = await CompleteSeedAsync();
+
+        let messagesWithToPersons = await context.Messages.Load("From").ToListAsync();
+        
+        let messages = await context.Messages.ToListAsync();
+
+        expect(messages.filter(s => s.From == undefined).length).toBe(messages.length);
+
+        await context.Messages.ReloadCachedRealitionsAsync(messages, ["From"]);
+        
+        for(let m of messages)
+        {
+            let mWithToPersons = messagesWithToPersons.filter(s => s.Id == m.Id)[0];
+
+            if(mWithToPersons.From == undefined)
+                continue;
+
+            expect(m.From).not.toBeUndefined();
+
+            expect(m.From!.Id).toBe(mWithToPersons!.From.Id);
+        }
+        
+    });
+
+    test("Should load all FROM persons in one message", async()=>{
+        
+        let context = await CompleteSeedAsync();
+
+        let messagesWithToPersons = await context.Messages.Load("From").ToListAsync();
+        
+        let messageWithPerson = messagesWithToPersons.filter(s => s.From != undefined)[0];
+
+        let message = (await context.Messages.WhereField("Id").IsEqualTo(messageWithPerson.Id).FirstOrDefaultAsync())!;       
+
+        
+        await context.Messages.ReloadCachedRealitionsAsync(message, ["From"]);
+
+        expect(message.From).not.toBeUndefined();
+
+        expect(message.From?.Id).toBe(messageWithPerson.From?.Id);       
+        
+    });
 
     test("Should load all TO persons in one message", async()=>{
         

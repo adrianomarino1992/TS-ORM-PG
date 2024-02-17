@@ -1464,7 +1464,7 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
                     (o as any)[k] = cachedObjects.filter(s => m.Value.filter((u: any) => u == (s as any)[pk!]).length > 0);
                 }else
                 {
-                    let i = cachedObjects.filter(s => m.Value.filter((u: any) => u == (s as any)[pk!]).length > 0);
+                    let i = cachedObjects.filter(s => m.Value == (s as any)[pk!]);
 
                     if(i.length > 0)
                         (o as any)[k] = i[0];
