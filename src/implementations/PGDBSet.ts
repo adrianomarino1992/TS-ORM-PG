@@ -2070,19 +2070,15 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
 
                     if(Reflect.get(row, map.Column) == undefined)
                     {
-                        if(this._includes.filter(s => s.Field == map.Field).length > 0)
-                        {
-                            Type.InjectMetadata(
-                                instance, 
-                                {
-                                    Field: map.Field, 
-                                    Type: map.Type as DBTypes,
-                                    Value : Reflect.get(row, map.Column), 
-                                    Loaded : true                                
-                                }
-                            );
-                        }
-
+                        Type.InjectMetadata(
+                            instance, 
+                            {
+                                Field: map.Field, 
+                                Type: map.Type as DBTypes,
+                                Value : Reflect.get(row, map.Column), 
+                                Loaded : this._includes.filter(s => s.Field == map.Field).length > 0                                
+                            }
+                        );
                         continue;
                     }
 
