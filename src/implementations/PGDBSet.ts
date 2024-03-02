@@ -172,10 +172,24 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
 
                 let subObj = Reflect.get(obj, sub.Field);
 
-                if(subObj == undefined)
-                    continue;
-
                 let subPK = SchemasDecorators.ExtractPrimaryKey(subType);
+
+                if(subObj == undefined)
+                {
+                    let columnType = Type.CastType(Type.GetDesingTimeTypeName(subType, subPK!)!);
+                    
+                    Type.InjectMetadata(
+                        obj, 
+                        {
+                            Field: sub.Field, 
+                            Type: columnType as DBTypes,
+                            Value : undefined, 
+                            Loaded : true                                
+                        }
+                    );
+
+                    continue;
+                }                
                 
                 if(subPK == undefined)                
                     throw new InvalidOperationException(`The type ${subType.name} must have a primary key column`);  
