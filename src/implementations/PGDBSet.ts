@@ -86,20 +86,40 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
 
                     let currPropValue = Reflect.get(obj, map.Field);
 
-                    if(currPropValue == undefined || currPropValue == null)
-                    {
-                        sql += `"${map.Column}",`;            
-                    
-                        values += `null,`;
-
-                        continue;
-                    }
-
+                   
                     let relation = SchemasDecorators.GetRelationAttribute(this._type, map.Field);
                     let designType = Type.GetDesingType(this._type, map.Field);
 
-                    if((designType && this._context.IsMapped(designType)) || (relation && this._context.IsMapped(relation.TypeBuilder())))
+                    let isArray = designType == Array;
+                    
+                    if(isArray && relation)
+                        designType = relation?.TypeBuilder();                                  
+
+                    if(!designType && relation)
+                        designType = relation.TypeBuilder();
+                     
+
+                    if((designType && this._context.IsMapped(designType)))
                     {
+                        if(currPropValue == undefined || currPropValue == null)
+                        {
+                            let subPK = SchemasDecorators.ExtractPrimaryKey(designType!);
+    
+                            let columnType = Type.CastType(Type.GetDesingTimeTypeName(designType!, subPK!)!);
+                            
+                            Type.InjectMetadata(
+                                obj, 
+                                {
+                                    Field: map.Field, 
+                                    Type: columnType as DBTypes,
+                                    Value : undefined, 
+                                    Loaded : true                                
+                                }
+                            );
+    
+                            continue;
+                        }   
+
                         subTypes.push({
                             Column : map.Column, 
                             Field : map.Field, 
@@ -109,12 +129,15 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
                         continue;
                     }
                     
-                   
+
                     let colType = Type.CastType(map.Type);
 
                     sql += `"${map.Column}",`;            
                     
-                    values += `${this.CreateValueStatement(colType, Reflect.get(obj, map.Field))},`;
+                    if(currPropValue == undefined || currPropValue == null)
+                        values += `null,`;  
+                    else   
+                        values += `${this.CreateValueStatement(colType, Reflect.get(obj, map.Field))},`;
                     
             }
 
@@ -175,21 +198,7 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
                 let subPK = SchemasDecorators.ExtractPrimaryKey(subType);
 
                 if(subObj == undefined)
-                {
-                    let columnType = Type.CastType(Type.GetDesingTimeTypeName(subType, subPK!)!);
-                    
-                    Type.InjectMetadata(
-                        obj, 
-                        {
-                            Field: sub.Field, 
-                            Type: columnType as DBTypes,
-                            Value : undefined, 
-                            Loaded : true                                
-                        }
-                    );
-
-                    continue;
-                }                
+                    continue;             
                 
                 if(subPK == undefined)                
                     throw new InvalidOperationException(`The type ${subType.name} must have a primary key column`);  
