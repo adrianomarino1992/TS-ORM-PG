@@ -37,7 +37,8 @@ export async function SeedAsync() : Promise<Context>
 {
     await TruncateTablesAsync();
 
-    let context = CreateContext();    
+    let context = CreateContext();   
+
 
     let adriano = new Person("Adriano", "adriano@test.com");
     adriano.Birth = new Date(1992,4,23);

@@ -13,6 +13,12 @@ import ConstraintFailException from "./core/exceptions/ConstraintFailException";
 import TypeNotSuportedException from "./core/exceptions/TypeNotSuportedException";
 import InvalidOperationException from "./core/exceptions/InvalidOperationException";
 
+import { DBOperationLogHandler, LogType } from "myorm_core";
+import { Operation } from "myorm_core";
+
+export {DBOperationLogHandler}
+export {LogType}
+export {Operation}
 
 export {ConnectionFailException}
 export {ConstraintFailException}

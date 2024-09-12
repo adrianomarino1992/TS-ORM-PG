@@ -80,6 +80,36 @@ describe("Context", ()=>{
     
         });
 
+        test("AsUntracked", async ()=>{
+       
+            let context = await SeedAsync();
+    
+            let adrianos = await context.Persons
+                                        .Where(
+                                            {
+                                                Field : 'Name', 
+                                                Kind: Operation.EQUALS, 
+                                                Value : 'Adriano'
+                                            }).Load("MessagesReceived")
+                                        .AsUntrackeds()
+                                        .ToListAsync();
+    
+            
+                                        
+            
+            expect(adrianos.length).toBe(1);   
+            expect(adrianos[0].Name).toBe("Adriano");
+            expect(adrianos[0].Email).toBe("adriano@test.com");
+            expect(adrianos[0].Birth).toEqual(new Date(1992,4,23));
+            expect(adrianos[0].Documents).toEqual([123,4,5,678,9]);
+            expect(adrianos[0].PhoneNumbers).toEqual(['+55(12)98206-8255']);
+            expect(adrianos.filter(s => (s as any)["_orm_metadata_"] != undefined).length).toBe(0);
+            
+    
+            await TruncatePersonTableAsync();              
+    
+        });
+
         
 
         describe("Quering array", ()=>{

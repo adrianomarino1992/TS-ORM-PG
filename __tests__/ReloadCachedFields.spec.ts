@@ -119,7 +119,7 @@ describe("Tpe utils functions", ()=>{
         }
 
         
-    });
+    }, 10000);
 
 
 

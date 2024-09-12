@@ -11,6 +11,8 @@ import PGDBSet from "./PGDBSet";
 import PGSetHelper from "./PGSetHelper";
 import { DBTypes } from "../Index";
 import { IJoining } from "myorm_core/lib/objects/interfaces/IDBContext";
+import {DBOperationLogHandler, LogType} from 'myorm_core'; 
+
 
 export default abstract class PGDBContext extends AbstractContext
 {
@@ -24,6 +26,10 @@ export default abstract class PGDBContext extends AbstractContext
         this._manager = manager;  
     }      
     
+    
+    public SetLogger(logger: DBOperationLogHandler): void {
+        this._manager.SetLogger(logger);
+    }
     
     public GetMappedTypes()
     {
@@ -273,6 +279,11 @@ export class JoinSelectable<T extends Object> implements IJoinSelectable<T>
        return this;
     }
 
+    public AsUntrackeds(): IJoinSelectable<T> {
+       
+        this._context.Collection(this._type)?.AsUntrackeds();
+        return this;
+    }
 
     public OrderBy<K extends keyof T>(key: K): IJoinSelectable<T> {
         this._context.Collection(this._type)?.OrderBy(key);

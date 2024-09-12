@@ -9,7 +9,7 @@ import SchemasDecorators from '../core/decorators/SchemasDecorators';
 import InvalidOperationException from '../core/exceptions/InvalidOperationException';
 import { DBTypes } from '../Index';
 import { RelationType } from '../core/enums/RelationType';
-import DBOperationLogHandler, { LogType } from '../core/handlers/DBOperationLogHandler';
+import {DBOperationLogHandler, LogType} from 'myorm_core'; 
 
 
 export default class PGDBManager extends AbstractManager

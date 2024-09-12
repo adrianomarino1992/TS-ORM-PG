@@ -33,6 +33,7 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
     private _offset? : IPGOffset;
     private _set : PGSetValue<T>;
     private _whereAsString? : string;
+    private _untrackeds : boolean;
 
     constructor(cTor : { new(...args : any[]) : T}, context : PGDBContext)
     {
@@ -43,6 +44,7 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
         this._manager = context["_manager"];
         this._context = context;
         this._set = new PGSetValue<T>();
+        this._untrackeds = false;
     }
        
 
@@ -1599,6 +1601,11 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
         });       
     } 
    
+    public AsUntrackeds(): AbstractSet<T> {
+        this._untrackeds = true;
+        return this;
+    }
+
     public async ToListAsync(): Promise<T[]> {
 
         return this.CreatePromisse(async () => 
@@ -1994,7 +2001,8 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
         this._ordering = [];
         this._includes = [];
         this._limit = undefined;  
-        this._set = new PGSetValue<T>();     
+        this._set = new PGSetValue<T>();    
+        this._untrackeds = false; 
         this.ResetFilters();
     }
 
@@ -2093,15 +2101,18 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
 
                     if(Reflect.get(row, map.Column) == undefined)
                     {
-                        Type.InjectMetadata(
-                            instance, 
-                            {
-                                Field: map.Field, 
-                                Type: map.Type as DBTypes,
-                                Value : Reflect.get(row, map.Column), 
-                                Loaded : this._includes.filter(s => s.Field == map.Field).length > 0                                
-                            }
-                        );
+                        if(!this._untrackeds)
+                        {
+                            Type.InjectMetadata(
+                                instance, 
+                                {
+                                    Field: map.Field, 
+                                    Type: map.Type as DBTypes,
+                                    Value : Reflect.get(row, map.Column), 
+                                    Loaded : this._includes.filter(s => s.Field == map.Field).length > 0                                
+                                }
+                            );
+                        }
                         continue;
                     }
 
@@ -2150,6 +2161,9 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
                                     });
                                 }
     
+                                if(this._untrackeds)
+                                    colletion.AsUntrackeds();
+
                                 let subObjets = await colletion.ToListAsync();
                                 Reflect.set(instance, map.Field, subObjets);
                             }                            
@@ -2162,6 +2176,9 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
                                 Value : Reflect.get(row, map.Column) as typeof type[keyof typeof type & string]
                             });
 
+                            if(this._untrackeds)
+                                colletion.AsUntrackeds();
+                            
                             let subObjet = await colletion.FirstOrDefaultAsync();
                             Reflect.set(instance, map.Field, subObjet);
 
@@ -2170,15 +2187,18 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
                         
                     }
 
-                    Type.InjectMetadata(
-                        instance, 
-                        {
-                            Field: map.Field, 
-                            Type: map.Type as DBTypes,
-                            Value : Reflect.get(row, map.Column), 
-                            Loaded : loaded                                
-                        }
-                    );
+                    if(!this._untrackeds)
+                    {
+                        Type.InjectMetadata(
+                            instance, 
+                            {
+                                Field: map.Field, 
+                                Type: map.Type as DBTypes,
+                                Value : Reflect.get(row, map.Column), 
+                                Loaded : loaded                                
+                            }
+                        );
+                    }
 
                 }
             }
