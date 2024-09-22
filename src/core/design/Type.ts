@@ -12,7 +12,15 @@ export default class Type
     {
         let empty = Reflect.construct(cTor, []);
 
-        return Object.keys(empty);
+        let keys = Object.keys(empty);
+        
+        SchemasDecorators.GetDecotaredProperties(cTor).forEach(k => 
+        {
+            if(keys.findIndex(v => v == k) == -1)
+                keys.push(k);
+        });
+
+        return keys;
     }
 
     public static GetDesingType(cTor : Function, propertyName : string) : {new (...args: any[]) : unknown} | undefined

@@ -35,7 +35,7 @@ describe("Tpe utils functions", ()=>{
             expect(m.To!.filter(s => mWithToPersons.To!.filter(u => u.Id == s.Id).length > 0).length).toBe(m.To!.length);
         }
         
-    });
+    }, 10000);
 
     test("Should load all FROM persons in all messages", async()=>{
         

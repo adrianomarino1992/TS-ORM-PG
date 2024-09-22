@@ -40,8 +40,7 @@ export class Message
         this.From = from;
         this.To = to;       
         this.LinkTestValueInMessage = -1;
-        this.LinkTestArrayInMessage = [];
-        this.User = undefined;
+        this.LinkTestArrayInMessage = [];        
     }
        
 

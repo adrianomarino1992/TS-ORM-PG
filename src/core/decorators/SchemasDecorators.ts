@@ -3,6 +3,7 @@ import 'reflect-metadata';
 import { DBTypes } from '../enums/DBTypes';
 import Type from '../design/Type';
 import { RelationType } from '../enums/RelationType';
+import OwnMetaDataContainer from '../design/OwnMetaDataContainer';
 
 export default class SchemasDecorators
 {
@@ -14,6 +15,30 @@ export default class SchemasDecorators
     private static _primaryKeyAttribute : string = "compile:schema-primarykey";    
     private static _relationAttribute : string = "compile:schema-relationWith"; 
     private static _notNullAttribute : string = "compile:schema-notNull"; 
+    private static _decoratedPropertiesTypeKey : string = "di:decorated-properties"; 
+
+    public static DefinePropertyAsDecorated(ctor: Function, property : string)
+    {
+        let meta = SchemasDecorators.GetDecotaredProperties(ctor);
+
+        let index = meta.findIndex(d => d == property);
+
+        if(index == -1)
+            meta.push(property);     
+
+        OwnMetaDataContainer.Set(ctor, SchemasDecorators._decoratedPropertiesTypeKey, undefined, meta);
+
+    }
+
+    public static GetDecotaredProperties(ctor: Function) : string[]
+    {
+        let meta = OwnMetaDataContainer.Get(ctor, SchemasDecorators._decoratedPropertiesTypeKey);
+
+        if(!meta)
+            return [];
+
+        return meta.Value;
+    }
     
 
     public static Table(name? : string)
@@ -40,6 +65,7 @@ export default class SchemasDecorators
     {
         return function (target : Object, propertyName : string)
         {
+            SchemasDecorators.DefinePropertyAsDecorated(target.constructor, propertyName.toString());
             OwnMetaDataContainer.Set(target.constructor, SchemasDecorators._columnAttribute, propertyName, name ?? propertyName.toLocaleLowerCase());
             Reflect.defineMetadata(SchemasDecorators._columnAttribute, name ?? propertyName.toLocaleLowerCase(), target.constructor, propertyName);
         }
@@ -59,6 +85,7 @@ export default class SchemasDecorators
     {
         return function (target : Object, propertyName : string)
         {
+            SchemasDecorators.DefinePropertyAsDecorated(target.constructor, propertyName.toString());
             OwnMetaDataContainer.Set(target.constructor, SchemasDecorators._notNullAttribute, propertyName, true);
             Reflect.defineMetadata(SchemasDecorators._notNullAttribute, true, target.constructor, propertyName);
         }
@@ -99,6 +126,7 @@ export default class SchemasDecorators
     {
         return function (target : Object, propertyName : string)
         {
+            SchemasDecorators.DefinePropertyAsDecorated(target.constructor, propertyName.toString());
             OwnMetaDataContainer.Set(target.constructor, SchemasDecorators._relationAttribute, propertyName,  { TypeBuilder : lazyBuilder, Relation : relation, Field : property });
             Reflect.defineMetadata(SchemasDecorators._relationAttribute, { TypeBuilder : lazyBuilder, Relation : relation, Field : property }, target.constructor, propertyName);
         }
@@ -120,6 +148,7 @@ export default class SchemasDecorators
     {
         return function (target : Object, propertyName : string)
         {
+            SchemasDecorators.DefinePropertyAsDecorated(target.constructor, propertyName.toString());
             OwnMetaDataContainer.Set(target.constructor, SchemasDecorators._primaryKeyAttribute, propertyName,  true);
             Reflect.defineMetadata(SchemasDecorators._primaryKeyAttribute, true , target.constructor, propertyName);
         }
@@ -157,6 +186,7 @@ export default class SchemasDecorators
 
         return function (target : Object, propertyName : string)
         {
+            SchemasDecorators.DefinePropertyAsDecorated(target.constructor, propertyName.toString());
             OwnMetaDataContainer.Set(target.constructor, SchemasDecorators._dataTypeAttribute, propertyName,  type);
             Reflect.defineMetadata(SchemasDecorators._dataTypeAttribute, type, target.constructor, propertyName);
         }
@@ -176,48 +206,4 @@ export default class SchemasDecorators
     }
 
 
-}
-
-
-class OwnMetaDataContainer
-{
-    private  static _metadas : IMetaData[] = [];
-
-    public static Get(target : Function, key : string, member? : string) : IMetaData | undefined
-    {
-        let meta =  this._metadas.filter(s => s.Key == key && (s.CTor == target || s.CTor == target.prototype) && s.Member == member);  
-        
-        if(meta && meta.length > 0)
-            return meta[0];
-
-        return undefined;
-    }
-
-    public static Set(target : Function, key : string, member? : string, value? : any) : void
-    {
-        let meta = this.Get(target, key, member);
-
-        if(meta)
-        {
-            meta.Value = value;
-        } 
-        else
-        {
-            this._metadas.push(
-                {
-                    CTor : target, 
-                    Key : key, 
-                    Member : member, 
-                    Value : value
-                });
-        }
-    }
-}
-
-interface IMetaData
-{
-    CTor : Function;
-    Member? : string;
-    Key : string;
-    Value? : any
 }
