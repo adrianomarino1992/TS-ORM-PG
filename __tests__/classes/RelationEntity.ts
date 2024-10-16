@@ -1,13 +1,10 @@
 import { Table, Column, PrimaryKey, DataType, ManyToOne, ManyToMany, DBTypes, OneToOne} from '../../src/Index';
+import { Entity } from './Entity';
 import { Person } from './TestEntity';
 
 @Table("message_tb")
-export class Message
+export class Message extends Entity
 {
-    @PrimaryKey()
-    @Column()
-    @DataType(DBTypes.SERIAL)
-    public Id : number = -1;
 
     @Column()
     public Message : string;
@@ -36,6 +33,7 @@ export class Message
 
     constructor(message : string, from? : Person, to? : Person[])
     {
+        super();
         this.Message = message;
         this.From = from;
         this.To = to;       

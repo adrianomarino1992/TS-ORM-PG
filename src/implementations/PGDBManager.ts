@@ -235,7 +235,7 @@ export default class PGDBManager extends AbstractManager
                 
                 if(relation == undefined)
                 {
-                    throw new InvalidOperationException(`Can not determine the relation of porperty ${cTor.name}${key}`);
+                    throw new InvalidOperationException(`Can not determine the relation of porperty ${cTor.name}.${key}`);
                 }
             }                
 

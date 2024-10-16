@@ -4,13 +4,14 @@ export default class OwnMetaDataContainer
 
     public static Get(target : any, key : string, member? : string) : IMetaData | undefined
     {
-        let meta =  this._metadas.filter(s => s.Key == key && OwnMetaDataContainer.TryFindCtor(s.CTor, target) && (s.Member == member || (s.Member == undefined && member == undefined)));  
+        let meta =  this._metadas.filter(s => s.Key == key && (s.CTor == target || s.CTor == target.constructor) && (s.Member == member || (s.Member == undefined && member == undefined)));  
         
         if(meta && meta.length > 0)
             return meta[0];
 
         return undefined;
     }
+
 
     public static Set(target : Function, key : string, member? : string, value? : any) : void
     {
@@ -30,30 +31,6 @@ export default class OwnMetaDataContainer
                     Value : value
                 });
         }
-    }
-
-    private static TryFindCtor(cTor : Function, target : any) : boolean
-    {
-        let sameType = cTor == target || cTor == target.constructor;
-        let sameProto = (target.prototype && target.prototype.constructor == cTor);
-        let sameAssign = (target.prototype && target.prototype.constructor.toString() == cTor.toString());
-        let found = sameType || sameProto || sameAssign;
-
-        if(found)
-            return true;
-
-        let current = typeof target == typeof Function ? target.prototype : target;
-
-        while(current)
-        {
-            if(cTor == current || (current.constructor && current.constructor == cTor))
-            {
-                return true;
-            }
-            current = current.__proto__;
-        }        
-
-        return false
     }
 
     

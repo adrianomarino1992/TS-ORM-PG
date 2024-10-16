@@ -32,12 +32,19 @@ export default class SchemasDecorators
 
     public static GetDecotaredProperties(ctor: Function) : string[]
     {
-        let meta = OwnMetaDataContainer.Get(ctor, SchemasDecorators._decoratedPropertiesTypeKey);
+        let current = ctor as any;
+        let meta : string[] = [];
+        
+        while(current)
+        {           
 
-        if(!meta)
-            return [];
+            let superMeta = ((OwnMetaDataContainer.Get(current, SchemasDecorators._decoratedPropertiesTypeKey)?.Value ?? []) as string[])
+            if(superMeta instanceof Array)
+                meta.push(...superMeta);
+            current = current.__proto__;
+        }  
 
-        return meta.Value;
+        return meta;
     }
     
 

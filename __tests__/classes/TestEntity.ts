@@ -1,14 +1,11 @@
-import { Table, Column, PrimaryKey, DataType, OneToMany, OneToOne, ManyToMany, DBTypes} from '../../src/Index';
+import { Table, Column, DataType, OneToMany, OneToOne, ManyToMany, DBTypes} from '../../src/Index';
+import { Entity } from './Entity';
 import { Message } from './RelationEntity';
 
 @Table("person_tb")
-export class Person
+export class Person extends Entity
 {
-    @PrimaryKey()
-    @Column()
-    @DataType(DBTypes.SERIAL)
-    public Id : number = -1;
-
+    
     @Column()
     public Name : string;
 
@@ -58,6 +55,7 @@ export class Person
   
     constructor(name : string = "", email : string = "", age : number = 1)
     {
+        super();
         this.Name = name;
         this.Email = email;
         this.Age = age;
