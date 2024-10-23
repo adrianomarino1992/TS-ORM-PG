@@ -9,6 +9,11 @@ myorm_pg is a ORM writen with TypeScript with sintax similar with MyORMForPostgr
 ```bash
 npm install myorm_pg
 ```
+Enable decorators on tsconfig.json
+```json
+"experimentalDecorators": true,                   
+"emitDecoratorMetadata": true,
+```
 
 
 # Usage
