@@ -13,14 +13,12 @@ import { RelationType } from "../core/enums/RelationType";
 import ConstraintFailException from "../core/exceptions/ConstraintFailException";
 import PGFluentField from "./PGFluentField";
 import PGSetHelper from "./PGSetHelper";
+import ColumnNotExistsException from "../core/exceptions/ColumnNotExistsException";
 
 
 
 export default class PGDBSet<T extends Object>  extends AbstractSet<T>
-{
-   
-    
-    
+{   
     private _type! : {new (...args : any[]) : T};    
     private _table! : string;
     private _maps! : ReturnType<typeof Type.GetColumnNameAndType>;
@@ -34,6 +32,7 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
     private _set : PGSetValue<T>;
     private _whereAsString? : string;
     private _untrackeds : boolean;
+    private _selectedsFields : string[] = [];
 
     constructor(cTor : { new(...args : any[]) : T}, context : PGDBContext)
     {
@@ -1600,10 +1599,40 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
 
         });       
     } 
+
+    public async ExistsAsync(): Promise<boolean> {
+        
+        this.Limit(1);
+        return (await this.CountAsync() > 0);
+
+    }
    
     public AsUntrackeds(): AbstractSet<T> {
         this._untrackeds = true;
         return this;
+    }
+
+   
+    public async SelectAsync<U extends keyof T>(keys: U[]): Promise<{ [K in U]: T[K]; }[]> {
+        
+        for(let k of keys)
+            if(this._maps.filter(s => s.Field == k.toString()).length > 0)
+                this._selectedsFields.push(k.toString());
+            else
+                throw new ColumnNotExistsException(`The field ${this._type.name}.${k.toString()} is not mapped`);
+        
+        return (await this.AsUntrackeds().ToListAsync()).map(s => {
+
+            let result = {} as { [K in U]: T[K] };
+
+            keys.forEach(key => {
+                result[key] = (s as any)[key.toString()];
+            });
+
+            return result;        
+        });
+
+                
     }
 
     public async ToListAsync(): Promise<T[]> {
@@ -1612,10 +1641,11 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
         {            
             let whereSrt = PGSetHelper.ExtractWhereData(this);
             let sqlSrt = PGSetHelper.ExtractSQLData(this);
+            let selectQuery = this.EvaluateSelect();
 
-            let query = `select "${this._table}".* from "${this._table}"`;  
+            let query = `select ${selectQuery} from "${this._table}"`;  
             
-            if(sqlSrt && sqlSrt.toLowerCase().trim().startsWith(`select distinct "${this._table}".*`))
+            if(sqlSrt && sqlSrt.toLowerCase().trim().startsWith(`select distinct "${this._table}".`))
                 query = sqlSrt;
 
             if(!whereSrt){
@@ -1815,6 +1845,24 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
         throw new TypeNotSuportedException(`The type ${colType} is not suported`);
     }
 
+    private EvaluateSelect()
+    {
+        let selectQuery = `"${this._table}".*`;
+        
+        if(this._selectedsFields.length > 0)
+        {
+            selectQuery = "";
+            for(let k of this._selectedsFields)
+            {
+                selectQuery += `"${this._table}".${this._maps.filter(s => s.Field == k.toString())[0].Column},`;
+            }
+
+            selectQuery = selectQuery.substring(0, selectQuery.length - 1);
+        }
+        
+        return selectQuery;            
+    }
+
     private EvaluateWhere()
     {
         let query = "";
@@ -2003,6 +2051,7 @@ export default class PGDBSet<T extends Object>  extends AbstractSet<T>
         this._limit = undefined;  
         this._set = new PGSetValue<T>();    
         this._untrackeds = false; 
+        this._selectedsFields = [];
         this.ResetFilters();
     }
 

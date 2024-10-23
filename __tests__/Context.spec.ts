@@ -187,6 +187,66 @@ describe("Context", ()=>{
         });
         
     });
+
+    describe("Count and exists", ()=>{
+        
+        test("Testing Count all", async ()=>{
+       
+            let context = await SeedAsync();
+            
+            let count = await context.Persons.CountAsync();
+            
+            expect(count).toBe(4);
+
+            await TruncatePersonTableAsync();
+    
+        });
+
+
+        test("Testing Count with where", async ()=>{
+       
+            let context = await SeedAsync();
+            
+            let count = await context.Persons.Where({Field: 'Name', Kind: Operation.CONSTAINS, Value: 'adriano'}).CountAsync();
+            
+            expect(count).toBe(1);
+
+            await TruncatePersonTableAsync();
+    
+        });
+
+        test("Testing Exists all", async ()=>{
+       
+            let context = await SeedAsync();
+            
+            let exists = await context.Persons.ExistsAsync();
+            
+            expect(exists).toBeTruthy();
+
+            await TruncatePersonTableAsync();
+
+            exists = await context.Persons.ExistsAsync();
+            
+            expect(exists).toBeFalsy();    
+        });
+
+
+        test("Testing Exists with where", async ()=>{
+       
+            let context = await SeedAsync();
+            
+            let exists = await context.Persons.Where({Field: 'Name', Kind: Operation.CONSTAINS, Value: 'adriano'}).ExistsAsync();
+            
+            expect(exists).toBeTruthy();
+
+            await TruncatePersonTableAsync();
+
+            exists = await context.Persons.Where({Field: 'Name', Kind: Operation.CONSTAINS, Value: 'adriano'}).ExistsAsync();
+            
+            expect(exists).toBeFalsy();    
+        });
+        
+    });
     
     
     describe("Update an entity", ()=>{

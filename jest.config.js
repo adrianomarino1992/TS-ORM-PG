@@ -5,5 +5,5 @@ module.exports = {
   testPathIgnorePatterns : 
   [
     "__tests__/classes", 
-  ]
+  ], 
 };

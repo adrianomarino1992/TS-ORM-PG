@@ -10,3 +10,5 @@ export default class QueryFailException extends Exception
         this.Query = query;
     }
 }
+
+

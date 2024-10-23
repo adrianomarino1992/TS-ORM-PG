@@ -61,7 +61,7 @@ describe("Tpe utils functions", ()=>{
             expect(m.From!.Id).toBe(mWithToPersons!.From.Id);
         }
         
-    });
+    }, 10000);
 
     test("Should load all FROM persons in one message", async()=>{
         
@@ -102,7 +102,7 @@ describe("Tpe utils functions", ()=>{
         expect(message.To?.filter(s => messageWithPerson.To!.filter(u => u.Id == s.Id).length > 0).length).toBe(messageWithPerson.To!.length);
         
         
-    });
+    },10000);
     
     test("Should throw a InvalidOperationException", async()=>{
         

@@ -242,7 +242,8 @@ export class JoinSelectable<T extends Object> implements IJoinSelectable<T>
         this._stack = stack;
         this._onStatements = onStack;
     }
-
+ 
+    
 
     public Take(quantity: number): IJoinSelectable<T> {
         this._context.Collection(this._type)?.Take(quantity);
@@ -272,6 +273,13 @@ export class JoinSelectable<T extends Object> implements IJoinSelectable<T>
             
         return c;          
     }
+
+    public async ExistsAsync(): Promise<boolean> {
+        
+        this.Limit(1);
+        return (await this.CountAsync()) > 0;
+    }
+    
    
     public Load<K extends keyof T>(key: K): IJoinSelectable<T> {
 
@@ -308,6 +316,23 @@ export class JoinSelectable<T extends Object> implements IJoinSelectable<T>
         return r;  
     }
 
+    public async SelectAsync<U extends keyof T>(keys: U[]): Promise<{ [K in U]: T[K]; }[]> {
+        
+        (this._context.Collection(this._type)! as any)["_selectedsFields"] = keys;
+       
+        return (await this.AsUntrackeds().ToListAsync()).map(s => {
+
+            let result = {} as { [K in U]: T[K] };
+
+            keys.forEach(key => {
+                result[key] = (s as any)[key.toString()];
+            });
+
+            return result;        
+        });
+
+    }
+
     protected PrepareQuery(): AbstractSet<T> 
     {
 
@@ -321,7 +346,7 @@ export class JoinSelectable<T extends Object> implements IJoinSelectable<T>
 
         let selectedTable = Type.GetTableName(this._type);
 
-        let query = `select distinct "${selectedTable}".* from "${Type.GetTableName(this._stack[0].Type)}" `;
+        let query = `select distinct ${(selectedSideSet as any)["EvaluateSelect"]()} from "${Type.GetTableName(this._stack[0].Type)}" `;
 
         for(let i = 0; i < this._onStatements.length; i++)
         {           
