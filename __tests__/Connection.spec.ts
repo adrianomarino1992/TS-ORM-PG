@@ -8,7 +8,7 @@ describe("Connection", ()=>{
 
     test("Test open and close connection", async ()=>{
 
-        var conn = new PGConnection("localhost", 5434, "postgres", "supervisor", "sup");
+        var conn = new PGConnection("localhost", 5432, "db", "user", "password");
 
         expect(conn).not.toBe(null);
 
@@ -23,10 +23,10 @@ describe("Connection", ()=>{
     test("Test open and close connection using enviroment variables", async ()=>{
 
       process.env.DB_HOST = "localhost";      
-      process.env.DB_PORT = "5434";
-      process.env.DB_USER = "supervisor";
-      process.env.DB_PASS = "sup";
-      process.env.DB_NAME = "postgres";
+      process.env.DB_PORT = "5432";
+      process.env.DB_USER = "user";
+      process.env.DB_PASS = "password";
+      process.env.DB_NAME = "db";
 
       let context = new Context(PGDBManager.BuildFromEnviroment());
 

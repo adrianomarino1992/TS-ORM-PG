@@ -10,14 +10,14 @@
   ],
   "readme": "README.md",
   "scripts": {
-    "test": "jest"
+    "test": "npx jest --colors --runInBand"
   },
   "keywords": [
     "orm",
     "postgres",
     "database"
   ],
-  "author": "adrinao.marino1992@gmail.com",
+  "author": "adriano.marino1992@gmail.com",
   "repository": "https://github.com/adrianomarino1992/myorm_pg.git",
   "homepage": "https://github.com/adrianomarino1992/myorm_pg#readme",
   "license": "ISC",

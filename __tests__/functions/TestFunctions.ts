@@ -25,7 +25,7 @@ export async function TryAsync(
 }
 
 export function CreateConnection() {
-  return new PGDBConnection("localhost", 5434, "test_db", "supervisor", "sup");
+  return new PGDBConnection("localhost", 5432, "db", "user", "password");
 }
 
 export function CreateContext(): Context {

@@ -97,7 +97,7 @@ describe("Types and metadata", ()=>{
         
             test("Testing create a column and checking if it was created", async ()=>{
         
-                var conn = new PGConnection("localhost", 5434, "test_db", "supervisor", "sup");
+                var conn = CreateConnection();
         
                 var manager = new PGDBManager(conn);
         
@@ -121,7 +121,7 @@ describe("Types and metadata", ()=>{
 
             test("Testing create a column and drop it", async ()=>{
         
-                var conn = new PGConnection("localhost", 5434, "test_db", "supervisor", "sup");
+                var conn = CreateConnection();
         
                 var manager = new PGDBManager(conn);
         
@@ -159,7 +159,7 @@ describe("Types and metadata", ()=>{
     
                 await TryAsync(async()=>{
 
-                    var conn = new PGConnection("localhost", 5434, "test_db", "supervisor", "sup");
+                    var conn = CreateConnection();
         
                     var manager = new PGDBManager(conn);
 
@@ -202,7 +202,7 @@ describe("Types and metadata", ()=>{
 
             test("Testing check column type", async ()=>{
         
-                var conn = new PGConnection("localhost", 5434, "test_db", "supervisor", "sup");
+                var conn = CreateConnection();
         
                 var manager = new PGDBManager(conn);
         
@@ -230,7 +230,7 @@ describe("Types and metadata", ()=>{
 
             test("Testing change column type", async ()=>{
         
-                var conn = new PGConnection("localhost", 5434, "test_db", "supervisor", "sup");
+                var conn = CreateConnection();
         
                 var manager = new PGDBManager(conn);
         

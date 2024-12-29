@@ -65,7 +65,7 @@ export default class PGDBManager extends AbstractManager
 
             await this._connection.AsPostgres().OpenAsync();
 
-            await this._connection.ExecuteAsync(`create database ${dababase} with owner ${this._connection.UserName};`);            
+            await this._connection.ExecuteAsync(`create database ${dababase} with owner '${this._connection.UserName}';`);            
         });
     }
     public CheckTableAsync(cTor : Function): Promise<boolean> {

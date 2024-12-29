@@ -5,5 +5,11 @@ module.exports = {
   testPathIgnorePatterns : 
   [
     "__tests__/classes", 
-  ], 
+  ] 
 };
+
+/* tests order
+connection
+schema
+...others
+*/
